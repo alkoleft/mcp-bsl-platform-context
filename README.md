@@ -65,8 +65,13 @@
 
 ### Запуск MCP сервера
 
+Linux
 ```bash
 java -jar mcp-bsl-context-<версия>.jar [опции]
+```
+Windows
+```bash
+java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-<версия>.jar [опции]
 ```
 
 **Опции:**
@@ -94,6 +99,13 @@ java -jar mcp-bsl-context-0.3.0.jar -m stdio -p "/opt/1cv8/x86_64/8.3.25.1257"
 
 # Показать справку
 java -jar mcp-bsl-context-0.3.0.jar --help
+```
+
+**Примеры запуска в Windows:**
+
+```cmd
+# STDIO режим (по умолчанию)
+java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-0.3.0.jar --platform-path "C:\Program Files\1cv8\8.3.27.1606"
 ```
 
 ### Возможности MCP сервера
@@ -130,6 +142,25 @@ java -jar mcp-bsl-context-0.3.0.jar --help
   }
 }
 ```
+Пример настройки для работы в Windows 
+```json
+  "mcpServers": {
+    "1c-platform": {
+      "type": "stdio",
+      "command": "java",
+      "args": [
+        "-Dfile.encoding=UTF-8",
+        "-jar",
+        "C:\\your_path\\mcp-bsl-context-0.3.0.jar",
+        "--platform-path",
+        "C:\\Program Files\\1cv8\\8.3.27.1606"
+      ],
+      "env": {
+        "LOG_FILE": "C:\\cmd\\mcp-server.log"
+      }
+    }
+}
+```
 
 **Cursor IDE** - создайте файл `.cursor/mcp.json` в корне проекта:
 
@@ -146,6 +177,25 @@ java -jar mcp-bsl-context-0.3.0.jar --help
       ]
     }
   }
+}
+```
+Пример настройки для работы в Windows 
+```json
+  "mcpServers": {
+    "1c-platform": {
+      "type": "stdio",
+      "command": "java",
+      "args": [
+        "-Dfile.encoding=UTF-8",
+        "-jar",
+        "C:\\your_path\\mcp-bsl-context-0.3.0.jar",
+        "--platform-path",
+        "C:\\Program Files\\1cv8\\8.3.27.1606"
+      ],
+      "env": {
+        "LOG_FILE": "C:\\cmd\\mcp-server.log"
+      }
+    }
 }
 ```
 
