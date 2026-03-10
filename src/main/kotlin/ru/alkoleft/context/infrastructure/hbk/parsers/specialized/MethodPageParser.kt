@@ -78,7 +78,7 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
                 "Пример:" -> ExampleBlockHandler() // Placeholder, can be a specific handler
                 "См. также:" -> RelatedObjectsBlockHandler() // Placeholder, can be a specific handler
                 "Примечание:" -> NoteBlockHandler()
-                "Доступность:", "Использование в версии:" -> null
+                "Доступность:", "Использование в версии:", "Использование в интерфейсе:" -> null
                 else -> throw UnknownPageBlockType(blockTitle)
             }
         }
