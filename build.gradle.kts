@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "io.github.alkoleft"
-version = "0.3.1-SNAPSHOT"
+version = "0.3.2-SNAPSHOT"
 
 gitVersioning.apply {
     refs {
