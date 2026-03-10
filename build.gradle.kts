@@ -148,6 +148,10 @@ jacoco {
     toolVersion = libs.versions.jacoco.get()
 }
 
+gitProperties {
+    failOnNoGitDirectory = false
+}
+
 ktlint {
     version = libs.versions.ktlint.get()
 }
