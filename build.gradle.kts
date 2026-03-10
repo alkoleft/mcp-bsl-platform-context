@@ -129,7 +129,7 @@ publishing {
     repositories {
         maven {
             name = "mcp-bsl-context"
-            url = uri("https://maven.pkg.github.com/alkoleft/mcp-bsl-context")
+            url = uri("https://maven.pkg.github.com/alkoleft/mcp-bsl-platform-context")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
