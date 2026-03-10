@@ -71,10 +71,6 @@ fun main(args: Array<String>) {
         }
     }
 
-    if (System.getProperty("os.name").startsWith("Windows")) {
-        System.setProperty("file.encoding", "UTF-8")
-    }
-
     runApplication<McpServerApplication>(*args) {
         setDefaultProperties(mapOf("spring.profiles.active" to activeProfiles.joinToString(",")))
     }

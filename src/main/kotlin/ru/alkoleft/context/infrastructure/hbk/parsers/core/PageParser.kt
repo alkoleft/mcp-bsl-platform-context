@@ -57,7 +57,7 @@ abstract class PageParser<T>(
     ) {
         val parser = KsoupHtmlParser(handler = handler)
         inputStream.use { stream ->
-            stream.bufferedReader().use {
+            stream.bufferedReader(Charsets.UTF_8).use {
                 it.forEachLine { line -> parser.write(line) }
             }
         }

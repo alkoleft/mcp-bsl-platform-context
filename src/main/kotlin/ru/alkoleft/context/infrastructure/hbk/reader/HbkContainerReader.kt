@@ -147,7 +147,7 @@ class HbkContainerReader {
         val stringBuffer = ByteArray(8)
         buffer.get(stringBuffer)
         buffer.get()
-        return String(stringBuffer).toLong(16).toInt()
+        return String(stringBuffer, Charsets.UTF_8).toLong(16).toInt()
     }
 
     private fun skipBlock(
