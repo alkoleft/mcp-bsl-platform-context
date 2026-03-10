@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "io.github.alkoleft"
-version = "0.3.1-SNAPSHOT"
+version = "0.3.2-SNAPSHOT"
 
 gitVersioning.apply {
     refs {
@@ -35,6 +35,10 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict", "-java-parameters", "-Xemit-jvm-type-annotations")
     }
+}
+
+application {
+    applicationDefaultJvmArgs = listOf("-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8")
 }
 
 java {
@@ -142,6 +146,10 @@ publishing {
 // Настройка JaCoCo для генерации отчёта покрытия тестов
 jacoco {
     toolVersion = libs.versions.jacoco.get()
+}
+
+gitProperties {
+    failOnNoGitDirectory = false
 }
 
 ktlint {

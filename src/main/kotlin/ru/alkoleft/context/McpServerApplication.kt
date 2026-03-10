@@ -31,12 +31,13 @@ fun main(args: Array<String>) {
         fullName = "verbose",
         description = "Включить отладочное логирование",
     )
-    val mode by parser.option(
-        ArgType.Choice(listOf("sse", "stdio"), { it }),
-        shortName = "m",
-        fullName = "mode",
-        description = "Режим работы: sse (HTTP Server-Sent Events) или stdio (стандартный ввод/вывод)",
-    ).default("stdio")
+    val mode by parser
+        .option(
+            ArgType.Choice(listOf("sse", "stdio"), { it }),
+            shortName = "m",
+            fullName = "mode",
+            description = "Режим работы: sse (HTTP Server-Sent Events) или stdio (стандартный ввод/вывод)",
+        ).default("stdio")
     val ssePort by parser.option(
         ArgType.Int,
         fullName = "port",
@@ -69,10 +70,6 @@ fun main(args: Array<String>) {
         "stdio" -> {
             activeProfiles.add("stdio")
         }
-    }
-
-    if (System.getProperty("os.name").startsWith("Windows")) {
-        System.setProperty("file.encoding", "UTF-8")
     }
 
     runApplication<McpServerApplication>(*args) {
