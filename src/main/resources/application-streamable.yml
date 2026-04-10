@@ -1,0 +1,9 @@
+# Профиль для Streamable HTTP режима
+spring:
+  ai:
+    mcp:
+      server:
+        stdio: false
+        protocol: STREAMABLE
+server:
+  port: ${MCP_HTTP_PORT:${SSE_PORT:8080}}
