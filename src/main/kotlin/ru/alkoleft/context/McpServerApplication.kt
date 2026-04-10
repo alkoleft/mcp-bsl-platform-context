@@ -33,15 +33,19 @@ fun main(args: Array<String>) {
     )
     val mode by parser
         .option(
-            ArgType.Choice(listOf("sse", "stdio"), { it }),
+            ArgType.Choice(listOf("sse", "stdio", "streamable"), { it }),
             shortName = "m",
             fullName = "mode",
-            description = "Режим работы: sse (HTTP Server-Sent Events) или stdio (стандартный ввод/вывод)",
+            description =
+                "Режим работы: " +
+                    "stdio (стандартный ввод/вывод), " +
+                    "sse (legacy HTTP Server-Sent Events), " +
+                    "streamable (MCP Streamable HTTP)",
         ).default("stdio")
     val ssePort by parser.option(
         ArgType.Int,
         fullName = "port",
-        description = "Порт для SSE сервера (по умолчанию 8080)",
+        description = "Порт HTTP сервера для режимов sse/streamable (по умолчанию 8080)",
     )
 
     parser.parse(args)
@@ -62,6 +66,13 @@ fun main(args: Array<String>) {
     when (mode) {
         "sse" -> {
             activeProfiles.add("sse")
+            if (ssePort != null) {
+                System.setProperty("server.port", ssePort.toString())
+            }
+        }
+
+        "streamable" -> {
+            activeProfiles.add("streamable")
             if (ssePort != null) {
                 System.setProperty("server.port", ssePort.toString())
             }
