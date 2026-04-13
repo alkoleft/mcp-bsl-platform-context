@@ -23,13 +23,13 @@ fun main(args: Array<String>) {
         ArgType.String,
         shortName = "p",
         fullName = "platform-path",
-        description = "Путь к каталогу платформы 1С",
+        description = "Path to the 1C platform directory",
     )
     val verbose by parser.option(
         ArgType.Boolean,
         shortName = "v",
         fullName = "verbose",
-        description = "Включить отладочное логирование",
+        description = "Enable debug logging",
     )
     val mode by parser
         .option(
@@ -37,15 +37,15 @@ fun main(args: Array<String>) {
             shortName = "m",
             fullName = "mode",
             description =
-                "Режим работы: " +
-                    "stdio (стандартный ввод/вывод), " +
+                "Operating modes: " +
+                    "stdio (standard input/output), " +
                     "sse (legacy HTTP Server-Sent Events), " +
                     "streamable (MCP Streamable HTTP)",
         ).default("stdio")
-    val ssePort by parser.option(
+    val httpPort by parser.option(
         ArgType.Int,
         fullName = "port",
-        description = "Порт HTTP сервера для режимов sse/streamable (по умолчанию 8080)",
+        description = "HTTP server port for sse/streamable modes (default: 8080)",
     )
 
     parser.parse(args)
@@ -66,15 +66,15 @@ fun main(args: Array<String>) {
     when (mode) {
         "sse" -> {
             activeProfiles.add("sse")
-            if (ssePort != null) {
-                System.setProperty("server.port", ssePort.toString())
+            if (httpPort != null) {
+                System.setProperty("server.port", httpPort.toString())
             }
         }
 
         "streamable" -> {
             activeProfiles.add("streamable")
-            if (ssePort != null) {
-                System.setProperty("server.port", ssePort.toString())
+            if (httpPort != null) {
+                System.setProperty("server.port", httpPort.toString())
             }
         }
 

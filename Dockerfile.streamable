@@ -7,10 +7,13 @@ WORKDIR /app
 COPY mcp-bsl-context-${APP_VERSION}.jar /app/mcp-bsl-context.jar
 
 # Create directory for 1C platform files
-RUN mkdir -p /app/1c-platform
+RUN addgroup --system app && adduser --system --ingroup app app \
+    && mkdir -p /app/1c-platform \
+    && chown -R app:app /app
 
 # Expose the port for Streamable HTTP
 EXPOSE 8080
 
 # Run the application in Streamable HTTP mode
+USER app
 CMD ["java", "-jar", "/app/mcp-bsl-context.jar", "--mode", "streamable", "--platform-path", "/app/1c-platform", "--port", "8080"]

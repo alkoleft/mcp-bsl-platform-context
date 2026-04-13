@@ -77,6 +77,7 @@ docker run -d \
         "1c-platform-sse": {
             "url": "http://10.0.0.x:8001/sse"
         }
+    }
 }
 ```
 
@@ -101,6 +102,7 @@ docker run -d \
         "1c-platform-streamable": {
             "url": "http://10.0.0.x:8080/mcp"
         }
+    }
 }
 ```
 
