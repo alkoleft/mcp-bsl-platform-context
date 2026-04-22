@@ -110,6 +110,8 @@ internal class TocParser {
         val number2 = parseNumber(iterator, "PropertiesContainer: ожидался number2")
         val nameContainer = parseNameContainer(iterator)
         val htmlPath = parseString(iterator, "PropertiesContainer: ожидался htmlPath")
+            .replace("\\", "/")
+            .replace("//", "/")
         expectToken(iterator, "}", "PropertiesContainer: ожидался '}' в конце")
         logger.debug { "    [PropertiesContainer] number1=$number1, number2=$number2, htmlPath=$htmlPath" }
         return PropertiesContainer(number1, number2, nameContainer, htmlPath)
