@@ -1,7 +1,7 @@
 # Работает и на Intel, и на Apple Silicon
 FROM eclipse-temurin:17-jre-jammy
 
-ARG APP_VERSION=0.2.2
+ARG APP_VERSION=0.3.2-SNAPSHOT
 
 WORKDIR /app
 COPY mcp-bsl-context-${APP_VERSION}.jar /app/mcp-bsl-context.jar
