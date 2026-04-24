@@ -4,5 +4,6 @@ spring:
     mcp:
       server:
         stdio: false
+        protocol: SSE
 server:
   port: ${SSE_PORT:8080}

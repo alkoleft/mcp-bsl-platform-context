@@ -79,8 +79,8 @@ java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-<версия>.jar [опции]
 - `--platform-path`, `-p` - путь к каталогу установки 1С Предприятия
 - `--help`, `-h` - показать справку по использованию
 - `--verbose` - включить отладочное логирование
-- `--mode`, `-m` - режим работы: sse (HTTP Server-Sent Events) или stdio (стандартный ввод/вывод) (по умолчанию stdio)
-- `--port` - порт для SSE сервера (по умолчанию 8080)
+- `--mode`, `-m` - режим работы: `stdio` (стандартный ввод/вывод), `sse` (legacy HTTP Server-Sent Events) или `streamable` (MCP Streamable HTTP) (по умолчанию stdio)
+- `--port` - порт HTTP сервера для режимов `sse` и `streamable` (по умолчанию 8080)
 
 **Примеры:**
 
@@ -93,6 +93,9 @@ java -jar mcp-bsl-context-0.3.0.jar --mode sse --platform-path "/opt/1cv8/x86_64
 
 # SSE режим с кастомным портом
 java -jar mcp-bsl-context-0.3.0.jar --mode sse --port 9000 --platform-path "/opt/1cv8/x86_64/8.3.25.1257"
+
+# Streamable HTTP режим (рекомендуется для Codex)
+java -jar mcp-bsl-context-0.3.0.jar --mode streamable --platform-path "/opt/1cv8/x86_64/8.3.25.1257"
 
 # Сокращенная форма
 java -jar mcp-bsl-context-0.3.0.jar -m stdio -p "/opt/1cv8/x86_64/8.3.25.1257"
