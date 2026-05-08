@@ -15,15 +15,12 @@ spring:
 
         # Возможности сервера
         capabilities:
-          tools:
-            # Поддержка инструментов
-            enabled: true
-          resources:
-            # Поддержка ресурсов (отключено для простоты)
-            enabled: false
-          prompts:
-            # Поддержка промптов (отключено для простоты)
-            enabled: false
+          # Поддержка инструментов
+          tool: true
+          # Поддержка ресурсов (отключено для простоты)
+          resource: false
+          # Поддержка промптов (отключено для простоты)
+          prompt: false
   # Отключаем баннер Spring Boot для чистого STDIO вывода
   main:
     banner-mode: off

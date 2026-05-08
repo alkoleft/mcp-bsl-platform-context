@@ -64,9 +64,6 @@ dependencies {
     // JSON/XML with Kotlin support
     implementation(libs.bundles.jackson)
 
-    // Logging
-    implementation(libs.bundles.logging)
-
     // Reactor Core для Spring AI MCP
     implementation(libs.reactor.core)
 

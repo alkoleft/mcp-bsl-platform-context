@@ -77,6 +77,32 @@ docker run -d \
         "1c-platform-sse": {
             "url": "http://10.0.0.x:8001/sse"
         }
+    }
+}
+```
+
+## Запуск в Docker c Streamable HTTP
+
+Вариант для HTTP-транспорта MCP в режиме `streamable` (рекомендуется для новых клиентов, включая Codex).
+
+```bash
+docker build -t 1c-platform-mcp-server-streamable -f Dockerfile.streamable --build-arg APP_VERSION=0.2.2 .
+
+docker run -d \
+  -v ./platform:/app/1c-platform:ro \
+  -p 8080:8080 \
+  1c-platform-mcp-server-streamable
+```
+
+### Пример настройки IDE/клиента при запуске в Docker с Streamable HTTP
+
+```json
+{
+    "mcpServers": {
+        "1c-platform-streamable": {
+            "url": "http://10.0.0.x:8080/mcp"
+        }
+    }
 }
 ```
 

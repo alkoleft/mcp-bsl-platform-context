@@ -62,8 +62,8 @@ java -jar build/libs/mcp-bsl-context.jar --mode sse
 ### Параметры запуска
 
 - `--platform-path` - путь к каталогу установки 1С Предприятия
-- `--mode` - режим работы (`stdio` или `sse`, по умолчанию `stdio`)
-- `--port` - порт для SSE режима (по умолчанию 8080)
+- `--mode` - режим работы (`stdio`, `sse` или `streamable`, по умолчанию `stdio`)
+- `--port` - порт для HTTP режимов `sse` и `streamable` (по умолчанию 8080)
 - `--verbose` - включить отладочное логирование
 - `--help` - показать справку
 
@@ -127,5 +127,4 @@ java -jar build/libs/mcp-bsl-context.jar \
 - [Релизы](https://github.com/alkoleft/mcp-bsl-context/releases)
 - [SSE документация](SSE_USAGE.md)
 
-Для сообщения об ошибках создайте issue в репозитории проекта.
 Для сообщения об ошибках создайте issue в репозитории проекта.
