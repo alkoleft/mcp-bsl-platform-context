@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.1.20"
 kotlin-logging = "7.0.3"
-springBoot = "3.5.3"
+springBoot = "3.5.11"
 springDependencyManagement = "1.1.7"
 gitVersioning = "6.4.4"
 gradleGitProperties = "2.4.2"
@@ -15,7 +15,7 @@ assertj = "3.8.0"
 slf4j-log4j12 = "1.7.30"
 kotlinx-cli = "0.3.6"
 
-springAi = "1.0.0"
+springAi = "1.1.4"
 ktlint = "1.4.1"
 jacoco = "0.8.11"
 
@@ -107,4 +107,4 @@ git-versioning = { id = "me.qoomon.git-versioning", version.ref = "gitVersioning
 gradle-git-properties = { id = "com.gorylenko.gradle-git-properties", version.ref = "gradleGitProperties" }
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" } 
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
