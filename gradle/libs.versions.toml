@@ -15,7 +15,7 @@ assertj = "3.8.0"
 slf4j-log4j12 = "1.7.30"
 kotlinx-cli = "0.3.6"
 
-springAi = "1.0.0"
+springAi = "1.1.6"
 ktlint = "1.4.1"
 jacoco = "0.8.11"
 
