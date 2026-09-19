@@ -122,7 +122,7 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
         MethodInfo(
             nameRu = nameRu as String,
             nameEn = nameEn as String,
-            signatures = signatures,
+            signatures = signatures.toList(),
             example = example,
             relatedObjects = relatedObjects,
             note = note,
