@@ -230,7 +230,7 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine("${method.description}\n")
             }
 
-            appendLine(formatSignatures(method.signature, method.name))
+            appendLine(formatSignatures(method.signature, method.name, showRequired = !method.isEvent))
 
             if (method.returnType.isNotBlank()) {
                 appendLine("**Возвращаемый тип:** `${method.returnType}`")
@@ -264,16 +264,18 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatSignatures(
         signatures: List<Signature>,
         name: String,
+        showRequired: Boolean = true,
     ) = buildString {
         signatures.forEach { signature ->
             appendLine("## Сигнатура: ${signature.name} (${signature.description})")
-            appendLine(formatSignature(signature, name))
+            appendLine(formatSignature(signature, name, showRequired))
         }
     }
 
     private fun formatSignature(
         signature: Signature,
         name: String,
+        showRequired: Boolean = true,
     ) = buildString {
         appendLine("```bsl")
         appendLine("$name(${signature.format()})")
@@ -283,7 +285,8 @@ class MarkdownFormatterService : ResponseFormatterService {
         if (signature.parameters.isNotEmpty()) {
             appendLine("### Параметры")
             signature.parameters.forEach { param ->
-                val requiredMark = if (param.required) "(обязательный)" else ""
+                // У параметров событий в справке нет признака обязательности
+                val requiredMark = if (showRequired && param.required) "(обязательный)" else ""
                 val description = param.description
                 appendLine("- **${param.name}** *(${param.type})* $requiredMark - $description")
             }

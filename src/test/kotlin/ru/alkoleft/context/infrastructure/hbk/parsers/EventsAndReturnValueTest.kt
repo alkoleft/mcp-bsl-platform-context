@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import ru.alkoleft.context.infrastructure.hbk.PlatformContextReader
 import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.MethodPageParser
 import ru.alkoleft.context.infrastructure.persistent.storage.toEntity
 import ru.alkoleft.context.infrastructure.persistent.storage.toEventEntity
@@ -68,5 +69,12 @@ class EventsAndReturnValueTest {
         assertFalse(method.isEvent)
         assertEquals("Обещание", method.returnType)
         assertTrue(method.returnDescription.contains("Строка, ДвоичныеДанные, Картинка или Неопределено"), method.returnDescription)
+    }
+
+    @Test
+    fun `global event catalogs are mapped to module names`() {
+        assertEquals("Модуль приложения", PlatformContextReader.eventModuleName("События приложения"))
+        assertEquals("Модуль внешнего соединения", PlatformContextReader.eventModuleName("События внешнего соединения"))
+        assertEquals("Новый раздел", PlatformContextReader.eventModuleName("Новый раздел"))
     }
 }

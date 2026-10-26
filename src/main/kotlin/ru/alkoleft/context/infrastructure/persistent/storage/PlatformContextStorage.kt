@@ -69,7 +69,7 @@ class PlatformContextStorage(
             val objectTypes = types().map { it.toEntity() }.toList()
             val enumTypes = enums().map { it.toEntity() }.toList()
             logger.info { "Загружено перечислений: ${enumTypes.size}" }
-            val globalEvents = globalEvents().map { it.toEventEntity(GLOBAL_CONTEXT_TYPE) }.toList()
+            val globalEvents = globalEvents().map { (module, event) -> event.toEventEntity("$GLOBAL_CONTEXT_TYPE ($module)") }
             logger.info { "Загружено глобальных событий: ${globalEvents.size}" }
             // Псевдотип «ГлобальныйКонтекст»: getMember/getMembers по глобальным методам, свойствам и событиям
             val globalContext =
