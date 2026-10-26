@@ -17,6 +17,7 @@ data class PlatformTypeDefinition(
     val methods: List<MethodDefinition>,
     val properties: List<PropertyDefinition>,
     val constructors: List<Signature>,
+    val status: ApiStatus = ApiStatus(),
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы

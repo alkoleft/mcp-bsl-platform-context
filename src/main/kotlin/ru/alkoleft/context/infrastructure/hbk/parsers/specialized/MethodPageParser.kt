@@ -7,12 +7,14 @@
 
 package ru.alkoleft.context.infrastructure.hbk.parsers.specialized
 
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.exceptions.HandlerProcessingNotImplemented
 import ru.alkoleft.context.infrastructure.hbk.exceptions.UnknownPageBlockType
 import ru.alkoleft.context.infrastructure.hbk.models.MethodInfo
 import ru.alkoleft.context.infrastructure.hbk.models.MethodSignatureInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
 import ru.alkoleft.context.infrastructure.hbk.models.ValueInfo
+import ru.alkoleft.context.infrastructure.hbk.parsers.core.AvailabilityBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.BlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.DescriptionBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.ExampleBlockHandler
@@ -61,6 +63,8 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
     private var note: String? = null
     private var returnValue: ValueInfo? = null
     private var description: String = ""
+    private var status = ApiStatus()
+    private var availability: String? = null
 
     private val currentSignature: MethodSignatureInfo
         get() = signatures.last()
@@ -78,7 +82,8 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
                 "Пример:" -> ExampleBlockHandler() // Placeholder, can be a specific handler
                 "См. также:" -> RelatedObjectsBlockHandler() // Placeholder, can be a specific handler
                 "Примечание:" -> NoteBlockHandler()
-                "Доступность:", "Использование в версии:", "Использование в интерфейсе:" -> null
+                "Доступность:" -> AvailabilityBlockHandler()
+                "Использование в версии:", "Использование в интерфейсе:" -> null
                 else -> throw UnknownPageBlockType(blockTitle)
             }
         }
@@ -98,6 +103,7 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
                 handler.getResult().apply {
                     nameRu = first
                     nameEn = second
+                    status = handler.getStatus()
                 }
 
             is SyntaxBlockHandler -> {
@@ -114,6 +120,7 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
             is ExampleBlockHandler -> example = handler.getResult()
             is RelatedObjectsBlockHandler -> relatedObjects = handler.getResult()
             is NoteBlockHandler -> note = handler.getResult()
+            is AvailabilityBlockHandler -> availability = handler.getResult().ifBlank { null }
             else -> throw HandlerProcessingNotImplemented(handler)
         }
     }
@@ -128,6 +135,7 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
             note = note,
             description = description,
             returnValue = returnValue,
+            status = status.copy(availability = availability),
         )
 
     override fun clean() {
@@ -139,6 +147,8 @@ class MethodPageProxyHandler : PageProxyHandler<MethodInfo>() {
         note = null
         description = ""
         returnValue = null
+        status = ApiStatus()
+        availability = null
     }
 
     fun appendNewSignature(blockTitle: String) {

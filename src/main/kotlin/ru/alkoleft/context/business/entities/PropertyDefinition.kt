@@ -16,4 +16,5 @@ data class PropertyDefinition(
     override val description: String,
     val propertyType: String,
     val isReadOnly: Boolean = false,
+    val status: ApiStatus = ApiStatus(),
 ) : Definition

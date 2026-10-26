@@ -9,6 +9,7 @@ package ru.alkoleft.context.presentation.formatters
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.business.entities.Definition
 import ru.alkoleft.context.business.entities.MethodDefinition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
@@ -79,6 +80,7 @@ class MarkdownFormatterService : ResponseFormatterService {
 
                 appendLine("### ${definition.name}")
                 appendLine("**Тип элемента:** $typeLabel")
+                definition.deprecatedStatus()?.let { append(formatDeprecation(it, compact = true)) }
                 appendLine("**Описание:** $description")
                 appendLine()
             }
@@ -162,6 +164,7 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatPlatformType(type: PlatformTypeDefinition): String =
         buildString {
             appendLine("# ${type.name}\n")
+            append(formatDeprecation(type.status))
 
             // Методы
             if (type.hasMethods()) {
@@ -185,6 +188,8 @@ class MarkdownFormatterService : ResponseFormatterService {
                     appendLine(formatConstructorSummary(it))
                 }
             }
+
+            append(formatStatusDetails(type.status))
         }
 
     /**
@@ -193,6 +198,7 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatMethod(method: MethodDefinition): String =
         buildString {
             appendLine("### ${method.name}\n")
+            append(formatDeprecation(method.status))
 
             if (method.description.isNotBlank()) {
                 appendLine("${method.description}\n")
@@ -203,6 +209,8 @@ class MarkdownFormatterService : ResponseFormatterService {
             if (method.returnType.isNotBlank()) {
                 appendLine("**Возвращаемый тип:** `${method.returnType}`\n")
             }
+
+            append(formatStatusDetails(method.status))
         }
 
     /**
@@ -211,6 +219,7 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatProperty(property: PropertyDefinition): String =
         buildString {
             appendLine("### ${property.name}\n")
+            append(formatDeprecation(property.status))
 
             if (property.description.isNotBlank()) {
                 appendLine("${property.description}\n")
@@ -218,6 +227,8 @@ class MarkdownFormatterService : ResponseFormatterService {
 
             appendLine("**Тип:** `${property.propertyType}`")
             appendLine("**Только для чтения:** ${if (property.isReadOnly) "Да" else "Нет"}\n")
+
+            append(formatStatusDetails(property.status))
         }
 
     private fun formatSignatures(
@@ -256,12 +267,13 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatMethodSummary(method: MethodDefinition): String {
         val returnType = if (method.returnType.isNotBlank()) ": ${method.returnType}" else ""
 
+        val mark = deprecatedMark(method.status)
         return if (method.signature.isEmpty()) {
-            "- ${method.name}()$returnType - ${method.description}"
+            "- $mark${method.name}()$returnType - ${method.description}"
         } else {
             buildString {
                 method.signature.forEach {
-                    appendLine("- ${method.name}(${it.format()})$returnType - ${it.description}")
+                    appendLine("- $mark${method.name}(${it.format()})$returnType - ${it.description}")
                 }
             }
         }
@@ -271,12 +283,56 @@ class MarkdownFormatterService : ResponseFormatterService {
      * Форматирует краткую информацию о свойстве
      */
     private fun formatPropertySummary(property: PropertyDefinition): String =
-        "- ${property.name}: ${property.propertyType} - ${property.description}"
+        "- ${deprecatedMark(property.status)}${property.name}: ${property.propertyType} - ${property.description}"
 
     /**
      * Форматирует краткую информацию о свойстве
      */
     private fun formatConstructorSummary(constructor: Signature): String = "- ${constructor.name} - ${constructor.description}"
+
+    /**
+     * Предупреждение об устаревании и рекомендуемая замена (выводится сразу под заголовком).
+     */
+    private fun formatDeprecation(
+        status: ApiStatus,
+        compact: Boolean = false,
+    ): String {
+        if (!status.isDeprecated) return ""
+        val replacement =
+            status.replacements
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(", ") { "`$it`" }
+        return buildString {
+            if (compact) {
+                append("**⚠️ ${status.deprecated}**")
+                replacement?.let { append(" Рекомендуется использовать: $it") }
+                appendLine()
+            } else {
+                appendLine("> ⚠️ **${status.deprecated}**")
+                replacement?.let { appendLine("> **Рекомендуется использовать:** $it") }
+                appendLine()
+            }
+        }
+    }
+
+    /**
+     * Версия появления и доступность (выводятся в конце описания элемента).
+     */
+    private fun formatStatusDetails(status: ApiStatus): String =
+        buildString {
+            status.since?.let { appendLine("**Версия:** $it") }
+            status.availability?.let { appendLine("**Доступность:** $it") }
+            if (isNotEmpty()) appendLine()
+        }
+
+    private fun deprecatedMark(status: ApiStatus) = if (status.isDeprecated) "⚠️ (не рекомендуется) " else ""
+
+    private fun Definition.deprecatedStatus(): ApiStatus? =
+        when (this) {
+            is MethodDefinition -> status
+            is PropertyDefinition -> status
+            is PlatformTypeDefinition -> status
+        }.takeIf { it.isDeprecated }
 }
 
 fun Signature.format() =

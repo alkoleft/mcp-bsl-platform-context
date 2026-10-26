@@ -7,6 +7,8 @@
 
 package ru.alkoleft.context.infrastructure.hbk.models
 
+import ru.alkoleft.context.business.entities.ApiStatus
+
 /**
  * Информация о свойстве объекта платформы 1С:Предприятие.
  *
@@ -29,6 +31,7 @@ data class PropertyInfo(
     val typeName: String,
     val note: String?,
     val relatedObjects: List<RelatedObject>?,
+    val status: ApiStatus = ApiStatus(),
 )
 
 /**
@@ -55,6 +58,7 @@ data class MethodInfo(
     val relatedObjects: List<RelatedObject>?,
     var description: String,
     var returnValue: ValueInfo?,
+    val status: ApiStatus = ApiStatus(),
 )
 
 /**
@@ -173,6 +177,7 @@ data class ObjectInfo(
     val properties: List<PropertyInfo>? = null,
     val methods: List<MethodInfo>? = null,
     val constructors: List<ConstructorInfo>? = null,
+    val status: ApiStatus = ApiStatus(),
 )
 
 /**

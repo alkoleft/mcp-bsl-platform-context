@@ -7,9 +7,11 @@
 
 package ru.alkoleft.context.infrastructure.hbk.parsers.specialized
 
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.exceptions.HandlerProcessingNotImplemented
 import ru.alkoleft.context.infrastructure.hbk.models.ObjectInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
+import ru.alkoleft.context.infrastructure.hbk.parsers.core.AvailabilityBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.BlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.DescriptionBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.ExampleBlockHandler
@@ -52,6 +54,8 @@ class ObjectPageProxyHandler : PageProxyHandler<ObjectInfo>() {
     private var example: String? = null
     private var note: String? = null
     private var relatedObjects: List<RelatedObject>? = null
+    private var status = ApiStatus()
+    private var availability: String? = null
 
     override fun clean() {
         nameRu = ""
@@ -60,6 +64,8 @@ class ObjectPageProxyHandler : PageProxyHandler<ObjectInfo>() {
         example = null
         note = null
         relatedObjects = null
+        status = ApiStatus()
+        availability = null
     }
 
     override fun createHandler(blockTitle: String): BlockHandler<*>? =
@@ -68,7 +74,8 @@ class ObjectPageProxyHandler : PageProxyHandler<ObjectInfo>() {
             "Пример:" -> ExampleBlockHandler()
             "См. также:" -> RelatedObjectsBlockHandler()
             "Примечание:" -> NoteBlockHandler()
-            "Свойства:", "Методы:", "События:", "Конструкторы:", "Доступность:", "Использование в версии:" -> null // Игнорируем эти блоки
+            "Доступность:" -> AvailabilityBlockHandler()
+            "Свойства:", "Методы:", "События:", "Конструкторы:", "Использование в версии:" -> null // Игнорируем эти блоки
             else -> null // Игнорируем неизвестные блоки
         }
 
@@ -78,12 +85,14 @@ class ObjectPageProxyHandler : PageProxyHandler<ObjectInfo>() {
                 handler.getResult().apply {
                     nameRu = first
                     nameEn = second
+                    status = handler.getStatus()
                 }
 
             is DescriptionBlockHandler -> description = handler.getResult()
             is ExampleBlockHandler -> example = handler.getResult()
             is RelatedObjectsBlockHandler -> relatedObjects = handler.getResult()
             is NoteBlockHandler -> note = handler.getResult()
+            is AvailabilityBlockHandler -> availability = handler.getResult().ifBlank { null }
             else -> throw HandlerProcessingNotImplemented(handler)
         }
     }
@@ -96,6 +105,7 @@ class ObjectPageProxyHandler : PageProxyHandler<ObjectInfo>() {
             example = example,
             note = note,
             relatedObjects = relatedObjects,
+            status = status.copy(availability = availability),
         )
 }
 

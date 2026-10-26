@@ -25,6 +25,7 @@ fun MethodInfo.toEntity() =
         description = description,
         returnType = returnValue?.type ?: "",
         signature = signatures.map(MethodSignatureInfo::toEntity),
+        status = status,
     )
 
 fun MethodSignatureInfo.toEntity() =
@@ -55,6 +56,7 @@ fun PropertyInfo.toEntity() =
         description = description,
         propertyType = typeName,
         isReadOnly = readonly,
+        status = status,
     )
 
 fun ObjectInfo.toEntity() =
@@ -64,4 +66,5 @@ fun ObjectInfo.toEntity() =
         methods = methods?.map(MethodInfo::toEntity) ?: emptyList(),
         properties = properties?.map(PropertyInfo::toEntity) ?: emptyList(),
         constructors = constructors?.map(ConstructorInfo::toEntity) ?: emptyList(),
+        status = status,
     )

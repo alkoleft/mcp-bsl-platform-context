@@ -16,4 +16,5 @@ data class MethodDefinition(
     override val description: String,
     val returnType: String,
     val signature: List<Signature>,
+    val status: ApiStatus = ApiStatus(),
 ) : Definition
