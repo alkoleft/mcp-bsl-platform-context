@@ -77,18 +77,21 @@ class PagesVisitor(
         var properties: Sequence<PropertyInfo>? = null
         var methods: Sequence<MethodInfo>? = null
         var constructors: Sequence<ConstructorInfo>? = null
+        var events: Sequence<MethodInfo>? = null
 
         for (subPage in page.children) {
             when (subPage.title.en) {
                 "Свойства" -> properties = visitPropertiesPage(subPage)
                 "Методы" -> methods = visitMethodsPage(subPage)
                 "Конструкторы" -> constructors = getConstructorsFromPage(subPage)
+                "События" -> events = visitEventsPage(subPage)
             }
         }
         return objectInfo.copy(
             methods = methods?.toList(),
             properties = properties?.toList(),
             constructors = constructors?.toList(),
+            events = events?.toList(),
         )
     }
 
@@ -103,6 +106,18 @@ class PagesVisitor(
         page.children
             .asSequence()
             .map { parser.parseMethodPage(it) }
+
+    /** Страницы событий устроены как страницы методов (Синтаксис, Параметры, Описание...). */
+    fun visitEventsPage(page: Page) =
+        page.children
+            .asSequence()
+            .filter { it.htmlPath.contains("/events/") }
+            .mapNotNull { eventPage ->
+                // Ошибка разбора одного события не должна ронять загрузку типа
+                runCatching { parser.parseMethodPage(eventPage) }
+                    .onFailure { logger.warn { "Пропущено событие ${eventPage.htmlPath}: ${it.message}" } }
+                    .getOrNull()
+            }
 
     private fun getConstructorsFromPage(page: Page) =
         page.children

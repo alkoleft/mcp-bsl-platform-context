@@ -71,7 +71,7 @@ class MarkdownFormatterService : ResponseFormatterService {
             result.forEach { definition ->
                 val typeLabel =
                     when (definition) {
-                        is MethodDefinition -> "Method"
+                        is MethodDefinition -> if (definition.isEvent) "Event (${definition.ownerType})" else "Method"
                         is PropertyDefinition -> "Property"
                         is PlatformTypeDefinition -> if (definition.isEnum) "Enum" else "Type"
                     }
@@ -116,7 +116,8 @@ class MarkdownFormatterService : ResponseFormatterService {
         if (definitions.isEmpty()) {
             return ("❌ **Не найдено:** Ничего не найдено для запроса\n")
         }
-        val methods = definitions.filterIsInstance<MethodDefinition>()
+        val methods = definitions.filterIsInstance<MethodDefinition>().filterNot { it.isEvent }
+        val events = definitions.filterIsInstance<MethodDefinition>().filter { it.isEvent }
         val properties = definitions.filterIsInstance<PropertyDefinition>()
         val types = definitions.filterIsInstance<PlatformTypeDefinition>()
         return buildString {
@@ -133,6 +134,14 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine("## Свойства\n")
                 properties.forEach { property ->
                     appendLine(formatProperty(property))
+                }
+            }
+
+            // События
+            if (events.isNotEmpty()) {
+                appendLine("## События\n")
+                events.forEach { event ->
+                    appendLine(formatMethod(event))
                 }
             }
         }
@@ -186,7 +195,15 @@ class MarkdownFormatterService : ResponseFormatterService {
                     appendLine(formatPropertySummary(it))
                 }
             }
-            // Свойства
+            // События
+            if (type.events.isNotEmpty()) {
+                appendLine("## События\n")
+                type.events.forEach {
+                    appendLine(formatMethodSummary(it))
+                }
+            }
+
+            // Конструкторы
             if (!type.constructors.isEmpty()) {
                 appendLine("## Конструкторы")
                 type.constructors.forEach {
@@ -202,7 +219,11 @@ class MarkdownFormatterService : ResponseFormatterService {
      */
     private fun formatMethod(method: MethodDefinition): String =
         buildString {
-            appendLine("### ${method.name}\n")
+            if (method.isEvent) {
+                appendLine("### Событие ${method.ownerType?.let { "$it." } ?: ""}${method.name}\n")
+            } else {
+                appendLine("### ${method.name}\n")
+            }
             append(formatDeprecation(method.status))
 
             if (method.description.isNotBlank()) {
@@ -212,7 +233,11 @@ class MarkdownFormatterService : ResponseFormatterService {
             appendLine(formatSignatures(method.signature, method.name))
 
             if (method.returnType.isNotBlank()) {
-                appendLine("**Возвращаемый тип:** `${method.returnType}`\n")
+                appendLine("**Возвращаемый тип:** `${method.returnType}`")
+                if (method.returnDescription.isNotBlank()) {
+                    appendLine(method.returnDescription)
+                }
+                appendLine()
             }
 
             append(formatStatusDetails(method.status))

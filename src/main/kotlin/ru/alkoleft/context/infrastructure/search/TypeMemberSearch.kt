@@ -55,6 +55,9 @@ class TypeMemberSearch(
         type.properties
             .filter { it.name.lowercase().contains(queryLower) }
             .forEach { results.add(it) }
+        type.events
+            .filter { it.name.lowercase().contains(queryLower) }
+            .forEach { results.add(it) }
 
         return results
     }

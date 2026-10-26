@@ -93,7 +93,7 @@ class ContextSearchService(
         val type = repository.findType(typeName)
 
         return if (type != null) {
-            val result = type.methods + type.properties
+            val result = type.methods + type.properties + type.events
             logger.debug { "findTypeMembers result size: ${result.size}" }
             result
         } else {

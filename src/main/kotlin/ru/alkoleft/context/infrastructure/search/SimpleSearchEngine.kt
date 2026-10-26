@@ -91,6 +91,8 @@ class SimpleSearchEngine(
                 .find { it.name.lowercase() == memberName }
                 ?: type.properties
                     .find { it.name.lowercase() == memberName }
+                ?: type.events
+                    .find { it.name.lowercase() == memberName }
         }
     }
 

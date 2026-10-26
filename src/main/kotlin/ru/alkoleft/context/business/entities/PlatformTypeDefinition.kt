@@ -20,6 +20,7 @@ data class PlatformTypeDefinition(
     val status: ApiStatus = ApiStatus(),
     /** Системное перечисление / набор значений: значения лежат в [properties]. */
     val isEnum: Boolean = false,
+    val events: List<MethodDefinition> = emptyList(),
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы

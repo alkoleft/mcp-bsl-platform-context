@@ -95,6 +95,15 @@ class PlatformContextReader {
                 }
             }.flatMap(visitor::visitMethodsPage)
 
+        fun globalEvents() =
+            sequence {
+                for (page in globalContextPage.children) {
+                    if (page.htmlPath.contains("/events/")) {
+                        yield(page)
+                    }
+                }
+            }.flatMap(visitor::visitEventsPage)
+
         fun globalProperties() =
             globalContextPage.children
                 .first { it.title.en == "Свойства" }

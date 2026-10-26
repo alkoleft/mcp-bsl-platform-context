@@ -180,6 +180,7 @@ data class ObjectInfo(
     val methods: List<MethodInfo>? = null,
     val constructors: List<ConstructorInfo>? = null,
     val status: ApiStatus = ApiStatus(),
+    val events: List<MethodInfo>? = null,
 )
 
 /**

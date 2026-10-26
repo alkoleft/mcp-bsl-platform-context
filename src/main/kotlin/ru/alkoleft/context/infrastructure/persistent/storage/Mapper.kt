@@ -26,6 +26,7 @@ fun MethodInfo.toEntity() =
         name = nameRu,
         description = description,
         returnType = returnValue?.type ?: "",
+        returnDescription = returnValue?.description?.trim() ?: "",
         signature = signatures.map(MethodSignatureInfo::toEntity),
         status = status,
     )
@@ -70,7 +71,10 @@ fun ObjectInfo.toEntity() =
         properties = properties?.map(PropertyInfo::toEntity) ?: emptyList(),
         constructors = constructors?.map(ConstructorInfo::toEntity) ?: emptyList(),
         status = status,
+        events = events?.map { it.toEventEntity(nameRu) } ?: emptyList(),
     )
+
+fun MethodInfo.toEventEntity(owner: String) = toEntity().copy(isEvent = true, ownerType = owner)
 
 fun EnumInfo.toEntity() =
     PlatformTypeDefinition(

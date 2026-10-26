@@ -17,4 +17,10 @@ data class MethodDefinition(
     val returnType: String,
     val signature: List<Signature>,
     val status: ApiStatus = ApiStatus(),
+    /** Описание возвращаемого значения (например, тип результата Обещания). */
+    val returnDescription: String = "",
+    /** Событие (обработчик), а не вызываемый метод. */
+    val isEvent: Boolean = false,
+    /** Тип-владелец события, например ФормаКлиентскогоПриложения. */
+    val ownerType: String? = null,
 ) : Definition
