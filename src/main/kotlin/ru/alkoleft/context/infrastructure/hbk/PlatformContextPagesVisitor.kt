@@ -63,7 +63,10 @@ class PagesVisitor(
             page.children
                 .filter { it.htmlPath.contains("/properties/") }
                 .map { parser.parseEnumValuePage(it) }
-        return parser.parseEnumPage(page).apply { this.values.addAll(values) }
+        return parser
+            .parseEnumPage(page)
+            .apply { this.values.addAll(values) }
+            .copy(tocName = page.title.ru.ifBlank { null })
     }
 
     /**
@@ -92,6 +95,7 @@ class PagesVisitor(
             properties = properties?.toList(),
             constructors = constructors?.toList(),
             events = events?.toList(),
+            tocName = page.title.ru.ifBlank { null },
         )
     }
 

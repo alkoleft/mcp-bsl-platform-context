@@ -21,6 +21,8 @@ data class PlatformTypeDefinition(
     /** Системное перечисление / набор значений: значения лежат в [properties]. */
     val isEnum: Boolean = false,
     val events: List<MethodDefinition> = emptyList(),
+    /** Имя типа в оглавлении справки (может отличаться от заголовка страницы). */
+    val tocName: String? = null,
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы

@@ -72,6 +72,7 @@ fun ObjectInfo.toEntity() =
         constructors = constructors?.map(ConstructorInfo::toEntity) ?: emptyList(),
         status = status,
         events = events?.map { it.toEventEntity(nameRu) } ?: emptyList(),
+        tocName = tocName,
     )
 
 fun MethodInfo.toEventEntity(owner: String) = toEntity().copy(isEvent = true, ownerType = owner)
@@ -85,6 +86,7 @@ fun EnumInfo.toEntity() =
         constructors = emptyList(),
         status = status,
         isEnum = true,
+        tocName = tocName,
     )
 
 fun EnumValueInfo.toEntity(enumName: String) =
@@ -97,11 +99,15 @@ fun EnumValueInfo.toEntity(enumName: String) =
     )
 
 /**
- * В справке встречаются одноимённые типы (например, два «ЭлементыФормы»: для обычной формы
- * и для формы клиентского приложения). Индекс хранит одно значение на имя, поэтому второй тип
- * был бы недоступен. Вариант с самой широкой доступностью сохраняет исходное имя, остальные
- * получают суффикс с доступностью: «ЭлементыФормы (Толстый клиент)». В описаниях указываются
- * взаимные ссылки.
+ * В справке встречаются одноимённые типы. Индекс хранит одно значение на имя, поэтому без
+ * переименования второй тип был бы недоступен. Случаи на справке 8.3.27:
+ * - разные типы с разной доступностью (ЭлементыФормы для обычной формы и для формы клиентского
+ *   приложения) — вариант с самой широкой доступностью сохраняет имя, остальные получают суффикс
+ *   с доступностью: «ЭлементыФормы (Толстый клиент)»;
+ * - несколько записей оглавления с разными именами указывают на одну страницу справки
+ *   (СтандартнаяКомандаПланировщика / СтандартнаяКомандаПоляПланировщика) — вариант получает
+ *   своё имя из оглавления.
+ * Основной вариант: шире доступность → меньше устаревших элементов → имя в оглавлении совпадает с заголовком.
  */
 fun disambiguateTypeNames(types: List<PlatformTypeDefinition>): List<PlatformTypeDefinition> {
     val result = types.toMutableList()
@@ -111,18 +117,43 @@ fun disambiguateTypeNames(types: List<PlatformTypeDefinition>): List<PlatformTyp
         .values
         .filter { it.size > 1 }
         .forEach { group ->
-            val ordered = group.sortedByDescending { availabilityWidth(types[it].status.availability) }
+            val ordered =
+                group.sortedWith(
+                    compareByDescending<Int> { availabilityWidth(types[it].status.availability) }
+                        .thenBy { deprecatedShare(types[it]) }
+                        .thenBy { if (types[it].tocName.isNullOrBlank() || types[it].tocName.equals(types[it].name, true)) 0 else 1 },
+                )
             val primary = types[ordered.first()]
             val alternatives =
                 ordered.drop(1).mapIndexed { n, i ->
-                    val base = types[i].name
-                    val suffix = availabilitySuffix(types[i].status.availability) ?: "вариант ${n + 2}"
-                    var candidate = "$base ($suffix)"
+                    val variant = types[i]
+                    val sameAvailability = availabilitySuffix(variant.status.availability) == availabilitySuffix(primary.status.availability)
+                    val tocName = variant.tocName?.trim()
+                    val (candidateBase, note) =
+                        when {
+                            !sameAvailability && availabilitySuffix(variant.status.availability) != null ->
+                                "${variant.name} (${availabilitySuffix(variant.status.availability)})" to
+                                    "Одноимённый тип с более широкой доступностью: `${primary.name}`."
+
+                            !tocName.isNullOrBlank() && !tocName.equals(variant.name, true) && tocName.lowercase() !in usedNames ->
+                                tocName to
+                                    "Имя из оглавления справки; страница справки общая с типом `${primary.name}`."
+
+                            deprecatedShare(variant) > deprecatedShare(primary) ->
+                                "${variant.name} (устаревший вариант)" to
+                                    "Актуальный вариант: `${primary.name}`."
+
+                            else ->
+                                "${variant.name} (вариант ${n + 2})" to
+                                    "Одноимённый тип: `${primary.name}`."
+                        }
+                    var candidate = candidateBase
                     var k = 2
                     while (!usedNames.add(candidate.lowercase())) {
-                        candidate = "$base ($suffix, ${k++})"
+                        candidate = "$candidateBase ($k)"
+                        k++
                     }
-                    i to candidate
+                    Triple(i, candidate, note)
                 }
             result[ordered.first()] =
                 primary.copy(
@@ -130,15 +161,20 @@ fun disambiguateTypeNames(types: List<PlatformTypeDefinition>): List<PlatformTyp
                         primary.description.trimEnd() +
                             "\n\nЕсть одноимённый тип: " + alternatives.joinToString(", ") { "`${it.second}`" } + ".",
                 )
-            alternatives.forEach { (i, alternativeName) ->
-                result[i] =
-                    types[i].copy(
-                        name = alternativeName,
-                        description = types[i].description.trimEnd() + "\n\nОдноимённый тип с более широкой доступностью: `${primary.name}`.",
-                    )
+            alternatives.forEach { (i, alternativeName, note) ->
+                result[i] = types[i].copy(name = alternativeName, description = types[i].description.trimEnd() + "\n\n" + RENAMED_TYPE_NOTE + " " + note)
             }
         }
     return result
+}
+
+/** Пометка в описании переименованного одноимённого типа (используется для подсчёта в логе). */
+const val RENAMED_TYPE_NOTE = "Переименован из-за одноимённого типа в справке."
+
+/** Доля устаревших элементов типа (сам тип, методы, свойства/значения, события). */
+internal fun deprecatedShare(type: PlatformTypeDefinition): Double {
+    val statuses = listOf(type.status) + type.methods.map { it.status } + type.properties.map { it.status } + type.events.map { it.status }
+    return statuses.count { it.isDeprecated }.toDouble() / statuses.size
 }
 
 /** Количество перечисленных клиентов/контекстов в строке «Доступность» (первое предложение). */

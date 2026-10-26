@@ -97,6 +97,7 @@ data class EnumInfo(
     val values: MutableList<EnumValueInfo> = mutableListOf(),
     var example: String?,
     val status: ApiStatus = ApiStatus(),
+    val tocName: String? = null,
 )
 
 /**
@@ -181,6 +182,7 @@ data class ObjectInfo(
     val constructors: List<ConstructorInfo>? = null,
     val status: ApiStatus = ApiStatus(),
     val events: List<MethodInfo>? = null,
+    val tocName: String? = null,
 )
 
 /**

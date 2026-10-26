@@ -22,7 +22,6 @@ import kotlin.concurrent.write
 private val logger = KotlinLogging.logger {}
 
 const val GLOBAL_CONTEXT_TYPE = "ГлобальныйКонтекст"
-private const val RENAMED_TYPE_MARK = "Одноимённый тип с более широкой доступностью"
 
 class PlatformContextStorage(
     private val loader: PlatformContextLoader,
@@ -83,7 +82,7 @@ class PlatformContextStorage(
                     events = globalEvents,
                 )
             types = disambiguateTypeNames(objectTypes + enumTypes + globalContext)
-            val renamedCount = types.count { it.description.contains(RENAMED_TYPE_MARK) }
+            val renamedCount = types.count { it.description.contains(RENAMED_TYPE_NOTE) }
             logger.info { "Одноимённых типов переименовано: $renamedCount" }
         }
         logger.info { "Загружено: методы=${methods.size}, свойства=${properties.size}, типы=${types.size}" }
