@@ -15,6 +15,7 @@ import ru.alkoleft.context.business.entities.MethodDefinition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.entities.PropertyDefinition
 import ru.alkoleft.context.business.entities.Signature
+import ru.alkoleft.context.business.entities.apiStatus
 import ru.alkoleft.context.business.services.ResponseFormatterService
 import ru.alkoleft.context.exceptions.DomainException
 
@@ -81,6 +82,9 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine("### ${definition.name}")
                 appendLine("**Тип элемента:** $typeLabel")
                 definition.deprecatedStatus()?.let { append(formatDeprecation(it, compact = true)) }
+                if (definition.apiStatus.isThickClientOnly) {
+                    appendLine("**⚠️ Только толстый клиент** (обычные формы / обычное приложение)")
+                }
                 appendLine("**Описание:** $description")
                 appendLine()
             }

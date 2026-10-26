@@ -9,6 +9,7 @@ package ru.alkoleft.context.infrastructure.search
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.alkoleft.context.business.entities.Definition
+import ru.alkoleft.context.business.entities.apiStatus
 import ru.alkoleft.context.business.entities.MethodDefinition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.entities.PropertyDefinition
@@ -140,9 +141,15 @@ class SimpleSearchEngine(
             searchResults.addAll(wordOrderSearch.search(query, type))
         }
 
-        // Удаление дубликатов и сортировка по приоритету
+        // Удаление дубликатов и сортировка по приоритету.
+        // Внутри одного вида совпадения элементы «только толстый клиент» (обычные формы и т.п.)
+        // опускаются ниже: новая разработка ведётся на управляемых формах.
         return removeDuplicates(searchResults)
-            .sortedWith(compareBy<SearchResult> { it.priority }.thenByDescending { it.wordsMatched })
+            .sortedWith(
+                compareBy<SearchResult> { it.priority }
+                    .thenBy { if (it.item.apiStatus.isThickClientOnly) 1 else 0 }
+                    .thenByDescending { it.wordsMatched },
+            )
             .map { it.item }
     }
 

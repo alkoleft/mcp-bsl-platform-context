@@ -25,4 +25,30 @@ data class ApiStatus(
 ) {
     val isDeprecated: Boolean
         get() = deprecated != null
+
+    /**
+     * Элемент доступен только в толстом клиенте (обычные формы, обычное приложение, часть COM-объектов).
+     * Определяется по первому предложению раздела «Доступность».
+     */
+    val isThickClientOnly: Boolean
+        get() =
+            availability
+                ?.lineSequence()
+                ?.firstOrNull()
+                ?.substringBefore('.')
+                ?.trim()
+                ?.equals(THICK_CLIENT, ignoreCase = true) == true
+
+    companion object {
+        const val THICK_CLIENT = "Толстый клиент"
+    }
 }
+
+/** Статус любого элемента API. */
+val Definition.apiStatus: ApiStatus
+    get() =
+        when (this) {
+            is MethodDefinition -> status
+            is PropertyDefinition -> status
+            is PlatformTypeDefinition -> status
+        }
