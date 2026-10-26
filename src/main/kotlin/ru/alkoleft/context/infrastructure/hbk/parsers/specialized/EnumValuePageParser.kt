@@ -7,10 +7,11 @@
 
 package ru.alkoleft.context.infrastructure.hbk.parsers.specialized
 
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.exceptions.HandlerProcessingNotImplemented
-import ru.alkoleft.context.infrastructure.hbk.exceptions.UnknownPageBlockType
 import ru.alkoleft.context.infrastructure.hbk.models.EnumValueInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
+import ru.alkoleft.context.infrastructure.hbk.parsers.core.AvailabilityBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.BlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.DescriptionBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.NameBlockHandler
@@ -42,20 +43,25 @@ class EnumValuePageParseHandler : PageProxyHandler<EnumValueInfo>() {
     private var nameEn = ""
     private var description = ""
     private var relatedObjects: List<RelatedObject>? = null
+    private var status = ApiStatus()
+    private var availability: String? = null
 
     override fun clean() {
         nameRu = ""
         nameEn = ""
         description = ""
         relatedObjects = null
+        status = ApiStatus()
+        availability = null
     }
 
     override fun createHandler(blockTitle: String): BlockHandler<*>? =
         when (blockTitle) {
             "Описание:" -> DescriptionBlockHandler()
             "См. также:" -> RelatedObjectsBlockHandler()
-            "Доступность:", "Использование в версии:", "Использование в интерфейсе:" -> null
-            else -> throw UnknownPageBlockType(blockTitle)
+            "Доступность:" -> AvailabilityBlockHandler()
+            // "Использование в версии:" и прочие блоки не нужны
+            else -> null
         }
 
     override fun onBlockFinished(handler: BlockHandler<*>) {
@@ -64,10 +70,12 @@ class EnumValuePageParseHandler : PageProxyHandler<EnumValueInfo>() {
                 handler.getResult().apply {
                     nameRu = first
                     nameEn = second
+                    status = handler.getStatus()
                 }
 
             is DescriptionBlockHandler -> description = handler.getResult()
             is RelatedObjectsBlockHandler -> relatedObjects = handler.getResult()
+            is AvailabilityBlockHandler -> availability = handler.getResult().ifBlank { null }
             else -> throw HandlerProcessingNotImplemented(handler)
         }
     }
@@ -78,6 +86,7 @@ class EnumValuePageParseHandler : PageProxyHandler<EnumValueInfo>() {
             nameEn = nameEn,
             description = description,
             relatedObjects = relatedObjects,
+            status = status.copy(availability = availability),
         )
 }
 

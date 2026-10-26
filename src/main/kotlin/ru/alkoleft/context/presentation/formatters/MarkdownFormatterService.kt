@@ -73,7 +73,7 @@ class MarkdownFormatterService : ResponseFormatterService {
                     when (definition) {
                         is MethodDefinition -> "Method"
                         is PropertyDefinition -> "Property"
-                        is PlatformTypeDefinition -> "Type"
+                        is PlatformTypeDefinition -> if (definition.isEnum) "Enum" else "Type"
                     }
 
                 val description = definition.description.takeIf { it.isNotBlank() } ?: "Нет описания"
@@ -153,6 +153,7 @@ class MarkdownFormatterService : ResponseFormatterService {
             appendLine("Конструкторы объекта $typeName")
             result.forEach {
                 appendLine("## Конструктор: ${it.name} (${it.description})")
+                append(formatDeprecation(it.status))
                 appendLine(formatSignature(it, "Новый $typeName"))
             }
         }
@@ -166,6 +167,10 @@ class MarkdownFormatterService : ResponseFormatterService {
             appendLine("# ${type.name}\n")
             append(formatDeprecation(type.status))
 
+            if (type.description.isNotBlank()) {
+                appendLine("${type.description}\n")
+            }
+
             // Методы
             if (type.hasMethods()) {
                 appendLine("## Методы\n")
@@ -176,7 +181,7 @@ class MarkdownFormatterService : ResponseFormatterService {
 
             // Свойства
             if (type.hasProperties()) {
-                appendLine("## Свойства\n")
+                appendLine(if (type.isEnum) "## Значения\n" else "## Свойства\n")
                 type.properties.forEach {
                     appendLine(formatPropertySummary(it))
                 }
@@ -288,7 +293,8 @@ class MarkdownFormatterService : ResponseFormatterService {
     /**
      * Форматирует краткую информацию о свойстве
      */
-    private fun formatConstructorSummary(constructor: Signature): String = "- ${constructor.name} - ${constructor.description}"
+    private fun formatConstructorSummary(constructor: Signature): String =
+        "- ${deprecatedMark(constructor.status)}${constructor.name} - ${constructor.description}"
 
     /**
      * Предупреждение об устаревании и рекомендуемая замена (выводится сразу под заголовком).

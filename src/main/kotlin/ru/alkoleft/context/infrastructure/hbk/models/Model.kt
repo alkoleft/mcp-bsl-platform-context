@@ -96,6 +96,7 @@ data class EnumInfo(
     val relatedObjects: List<RelatedObject>?,
     val values: MutableList<EnumValueInfo> = mutableListOf(),
     var example: String?,
+    val status: ApiStatus = ApiStatus(),
 )
 
 /**
@@ -111,6 +112,7 @@ data class EnumValueInfo(
     val nameEn: String,
     val description: String,
     val relatedObjects: List<RelatedObject>?,
+    val status: ApiStatus = ApiStatus(),
 )
 
 /**
@@ -202,4 +204,5 @@ data class ConstructorInfo(
     val example: String?,
     val note: String?,
     val relatedObjects: List<RelatedObject>?,
+    val status: ApiStatus = ApiStatus(),
 )

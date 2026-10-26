@@ -13,6 +13,8 @@ import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.entities.PropertyDefinition
 import ru.alkoleft.context.business.entities.Signature
 import ru.alkoleft.context.infrastructure.hbk.models.ConstructorInfo
+import ru.alkoleft.context.infrastructure.hbk.models.EnumInfo
+import ru.alkoleft.context.infrastructure.hbk.models.EnumValueInfo
 import ru.alkoleft.context.infrastructure.hbk.models.MethodInfo
 import ru.alkoleft.context.infrastructure.hbk.models.MethodParameterInfo
 import ru.alkoleft.context.infrastructure.hbk.models.MethodSignatureInfo
@@ -40,6 +42,7 @@ fun ConstructorInfo.toEntity() =
         name = name,
         parameters = parameters.map(MethodParameterInfo::toEntity),
         description = description,
+        status = status,
     )
 
 fun MethodParameterInfo.toEntity() =
@@ -66,5 +69,25 @@ fun ObjectInfo.toEntity() =
         methods = methods?.map(MethodInfo::toEntity) ?: emptyList(),
         properties = properties?.map(PropertyInfo::toEntity) ?: emptyList(),
         constructors = constructors?.map(ConstructorInfo::toEntity) ?: emptyList(),
+        status = status,
+    )
+
+fun EnumInfo.toEntity() =
+    PlatformTypeDefinition(
+        name = nameRu,
+        description = description,
+        methods = emptyList(),
+        properties = values.map { it.toEntity(nameRu) },
+        constructors = emptyList(),
+        status = status,
+        isEnum = true,
+    )
+
+fun EnumValueInfo.toEntity(enumName: String) =
+    PropertyDefinition(
+        name = nameRu,
+        description = description,
+        propertyType = enumName,
+        isReadOnly = true,
         status = status,
     )

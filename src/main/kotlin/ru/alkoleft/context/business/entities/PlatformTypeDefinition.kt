@@ -18,6 +18,8 @@ data class PlatformTypeDefinition(
     val properties: List<PropertyDefinition>,
     val constructors: List<Signature>,
     val status: ApiStatus = ApiStatus(),
+    /** Системное перечисление / набор значений: значения лежат в [properties]. */
+    val isEnum: Boolean = false,
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы

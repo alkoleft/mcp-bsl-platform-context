@@ -64,7 +64,10 @@ class PlatformContextStorage(
         loader.loadPlatformContext(platformPath) {
             methods = globalMethods().map(MethodInfo::toEntity).toList()
             properties = globalProperties().map(PropertyInfo::toEntity).toList()
-            types = types().map { it.toEntity() }.toList()
+            val objectTypes = types().map { it.toEntity() }.toList()
+            val enumTypes = enums().map { it.toEntity() }.toList()
+            logger.info { "Загружено перечислений: ${enumTypes.size}" }
+            types = objectTypes + enumTypes
         }
         logger.info { "Загружено: методы=${methods.size}, свойства=${properties.size}, типы=${types.size}" }
         indexInitialized.set(true)

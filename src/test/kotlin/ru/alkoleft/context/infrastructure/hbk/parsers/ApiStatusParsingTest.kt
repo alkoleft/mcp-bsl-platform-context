@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.ConstructorPageParser
+import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.EnumPageParser
+import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.EnumValuePageParser
 import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.MethodPageParser
 import ru.alkoleft.context.infrastructure.hbk.parsers.specialized.PropertyPageParser
 
@@ -94,5 +97,68 @@ class ApiStatusParsingTest {
         assertTrue(result.status.replacements.isEmpty())
         assertEquals("Доступен, начиная с версии 8.0.", result.status.since)
         assertNull(result.status.availability)
+    }
+
+    private val enumPage =
+        """
+        <html><head></head><body>
+        <p class="V8SH_heading">МетодСжатияФайлаАрхива (ArchiveFileCompressionMethod)</p>
+        <p class="V8SH_chapter">Значения</p><p>BZIP2 (BZIP2)</p>
+        <p class="V8SH_chapter">Описание:</p>Содержит варианты методов сжатия записываемого файла архива.
+        <p class="V8SH_chapter">Доступность:</p><p>Сервер, толстый клиент, внешнее соединение.</p>
+        <p class="V8SH_chapter">Использование в версии:</p><p>Доступен, начиная с версии 8.3.26.</p>
+        <p class="V8SH_chapter">Неизвестный блок:</p><p>не должен ронять разбор</p>
+        </body></html>
+        """.trimIndent()
+
+    private val deprecatedEnumValuePage =
+        """
+        <html><head></head><body>
+        <p class="V8SH_title">МетодСжатияZIP (ZIPCompressionMethod)</p>
+        <p class="V8SH_heading">Сжатие (Deflate)</p>
+        <div class="__DEPRECATED_SHOW_STYLE__"><p class="not_used">Не рекомендуется использовать, начиная с версии 8.3.26.</p></div>
+        <p class="V8SH_chapter">Описание:</p>Метод сжатия Deflate.
+        <p class="V8SH_chapter">Доступность:</p><p>Сервер, толстый клиент.</p>
+        </body></html>
+        """.trimIndent()
+
+    private val deprecatedConstructorPage =
+        """
+        <html><head></head><body>
+        <p class="V8SH_title">ТестОбъект (TestObject)</p>
+        <p class="V8SH_heading">По имени файла</p>
+        <div class="__DEPRECATED_SHOW_STYLE__"><p class="not_used">Не рекомендуется использовать, начиная с версии 8.3.20.</p>
+        <p class="__DEPRECATED_SHOW_STYLE__">Рекомендуется использовать:</p>
+        <ul class="__DEPRECATED_SHOW_STYLE__"><li><a href="v8help://x/C.html">По потоку</a></li></ul></div>
+        <p class="V8SH_chapter">Синтаксис:</p>Новый ТестОбъект(&lt;ИмяФайла&gt;)
+        <p class="V8SH_chapter">Описание:</p>Создает объект.
+        </body></html>
+        """.trimIndent()
+
+    @Test
+    fun `enum page keeps availability and ignores unknown blocks`() {
+        val result = EnumPageParser().parse(enumPage.byteInputStream())
+
+        assertEquals("МетодСжатияФайлаАрхива", result.nameRu)
+        assertEquals("Содержит варианты методов сжатия записываемого файла архива.", result.description)
+        assertEquals("Сервер, толстый клиент, внешнее соединение.", result.status.availability)
+        assertFalse(result.status.isDeprecated)
+    }
+
+    @Test
+    fun `deprecated enum value`() {
+        val result = EnumValuePageParser().parse(deprecatedEnumValuePage.byteInputStream())
+
+        assertEquals("Сжатие", result.nameRu)
+        assertEquals("Не рекомендуется использовать, начиная с версии 8.3.26.", result.status.deprecated)
+        assertEquals("Сервер, толстый клиент.", result.status.availability)
+    }
+
+    @Test
+    fun `deprecated constructor with replacement`() {
+        val result = ConstructorPageParser().parse(deprecatedConstructorPage.byteInputStream())
+
+        assertEquals("Не рекомендуется использовать, начиная с версии 8.3.20.", result.status.deprecated)
+        assertEquals(listOf("По потоку"), result.status.replacements)
     }
 }

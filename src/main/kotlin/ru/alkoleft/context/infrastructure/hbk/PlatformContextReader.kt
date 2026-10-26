@@ -79,7 +79,12 @@ class PlatformContextReader {
                 for (page in enumPages) {
                     drillDown(page)
                 }
-            }.map(visitor::visitEnumPage)
+            }.mapNotNull { page ->
+                // Ошибка разбора одной страницы перечисления не должна ронять загрузку всего контекста
+                runCatching { visitor.visitEnumPage(page) }
+                    .onFailure { logger.warn { "Пропущено перечисление ${page.htmlPath}: ${it.message}" } }
+                    .getOrNull()
+            }
 
         fun globalMethods() =
             sequence {
