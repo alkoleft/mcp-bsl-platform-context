@@ -121,6 +121,13 @@ class ContextSearchService(
 
     fun getApiType(type: String?): ApiType? {
         if (type.isNullOrBlank()) return null
+        // Описание параметра говорит «null — все типы»; клиенты (в т.ч. LLM) передают это строкой.
+        if (type.trim().lowercase() in ANY_TYPE_VALUES) return null
         return ApiType.getType(type) ?: throw InvalidSearchQueryException("Неизвестный тип '$type' искомого элемента")
+    }
+
+    private companion object {
+        /** Значения параметра type, означающие поиск без фильтра по виду элемента. */
+        val ANY_TYPE_VALUES = setOf("null", "all", "any", "все", "любой")
     }
 }
