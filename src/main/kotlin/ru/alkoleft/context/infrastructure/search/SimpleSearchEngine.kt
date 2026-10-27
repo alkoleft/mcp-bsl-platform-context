@@ -130,7 +130,7 @@ class SimpleSearchEngine(
 
         // 2. Поиск "тип.элемент" (type-member search) - приоритет 2
         if (words.size >= 2) {
-            searchResults.addAll(typeMemberSearch.search(query))
+            searchResults.addAll(typeMemberSearch.search(query, type))
         }
 
         // 3. Обычный поиск (regular search) - приоритет 3

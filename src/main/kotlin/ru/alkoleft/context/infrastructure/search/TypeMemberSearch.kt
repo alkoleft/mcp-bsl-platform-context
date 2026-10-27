@@ -9,13 +9,17 @@ package ru.alkoleft.context.infrastructure.search
 
 import ru.alkoleft.context.business.entities.Definition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
+import ru.alkoleft.context.business.valueobjects.ApiType
 import ru.alkoleft.context.infrastructure.search.SimpleSearchEngine.SearchResult
 import ru.alkoleft.context.infrastructure.search.indexes.Indexes
 
 class TypeMemberSearch(
     private val indexes: Indexes,
 ) {
-    fun search(query: String): List<SearchResult> {
+    fun search(
+        query: String,
+        apiType: ApiType? = null,
+    ): List<SearchResult> {
         val words = query.split("\\s+".toRegex()).filter { it.isNotBlank() }
         val results = mutableListOf<SearchResult>()
 
@@ -28,7 +32,7 @@ class TypeMemberSearch(
                 indexes.types
                     .get(typeName)
                     .forEach { type ->
-                        val members = searchMembersInType(type, memberQuery)
+                        val members = searchMembersInType(type, memberQuery, apiType)
                         members.forEach { member ->
                             results.add(typeMember(member))
                         }
@@ -39,25 +43,40 @@ class TypeMemberSearch(
         return results
     }
 
+    /**
+     * Члены типа, имя которых содержит [memberQuery]. Фильтр [apiType] — как в [RegularSearch]:
+     * METHOD — только методы, PROPERTY — только свойства, TYPE — членов типа нет;
+     * без фильтра (и для CONSTRUCTOR) — методы, свойства и события.
+     */
     fun searchMembersInType(
         type: PlatformTypeDefinition,
         memberQuery: String,
+        apiType: ApiType? = null,
     ): List<Definition> {
         val results = mutableListOf<Definition>()
         val queryLower = memberQuery.lowercase()
+        val anyKind = apiType == null || apiType == ApiType.CONSTRUCTOR
 
         // Поиск среди методов
-        type.methods
-            .filter { it.name.lowercase().contains(queryLower) }
-            .forEach { results.add(it) }
+        if (anyKind || apiType == ApiType.METHOD) {
+            type.methods
+                .filter { it.name.lowercase().contains(queryLower) }
+                .forEach { results.add(it) }
+        }
 
         // Поиск среди свойств
-        type.properties
-            .filter { it.name.lowercase().contains(queryLower) }
-            .forEach { results.add(it) }
-        type.events
-            .filter { it.name.lowercase().contains(queryLower) }
-            .forEach { results.add(it) }
+        if (anyKind || apiType == ApiType.PROPERTY) {
+            type.properties
+                .filter { it.name.lowercase().contains(queryLower) }
+                .forEach { results.add(it) }
+        }
+
+        // События — только без фильтра по виду элемента
+        if (anyKind) {
+            type.events
+                .filter { it.name.lowercase().contains(queryLower) }
+                .forEach { results.add(it) }
+        }
 
         return results
     }
