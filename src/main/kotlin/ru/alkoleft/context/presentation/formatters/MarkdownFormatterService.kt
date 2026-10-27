@@ -9,11 +9,13 @@ package ru.alkoleft.context.presentation.formatters
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.business.entities.Definition
 import ru.alkoleft.context.business.entities.MethodDefinition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.entities.PropertyDefinition
 import ru.alkoleft.context.business.entities.Signature
+import ru.alkoleft.context.business.entities.apiStatus
 import ru.alkoleft.context.business.services.ResponseFormatterService
 import ru.alkoleft.context.exceptions.DomainException
 
@@ -70,15 +72,19 @@ class MarkdownFormatterService : ResponseFormatterService {
             result.forEach { definition ->
                 val typeLabel =
                     when (definition) {
-                        is MethodDefinition -> "Method"
+                        is MethodDefinition -> if (definition.isEvent) "Event (${definition.ownerType})" else "Method"
                         is PropertyDefinition -> "Property"
-                        is PlatformTypeDefinition -> "Type"
+                        is PlatformTypeDefinition -> if (definition.isEnum) "Enum" else "Type"
                     }
 
                 val description = definition.description.takeIf { it.isNotBlank() } ?: "Нет описания"
 
                 appendLine("### ${definition.name}")
                 appendLine("**Тип элемента:** $typeLabel")
+                definition.deprecatedStatus()?.let { append(formatDeprecation(it, compact = true)) }
+                if (definition.apiStatus.isThickClientOnly) {
+                    appendLine("**⚠️ Только толстый клиент** (обычные формы / обычное приложение)")
+                }
                 appendLine("**Описание:** $description")
                 appendLine()
             }
@@ -114,7 +120,8 @@ class MarkdownFormatterService : ResponseFormatterService {
         if (definitions.isEmpty()) {
             return ("❌ **Не найдено:** Ничего не найдено для запроса\n")
         }
-        val methods = definitions.filterIsInstance<MethodDefinition>()
+        val methods = definitions.filterIsInstance<MethodDefinition>().filterNot { it.isEvent }
+        val events = definitions.filterIsInstance<MethodDefinition>().filter { it.isEvent }
         val properties = definitions.filterIsInstance<PropertyDefinition>()
         val types = definitions.filterIsInstance<PlatformTypeDefinition>()
         return buildString {
@@ -131,6 +138,14 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine("## Свойства\n")
                 properties.forEach { property ->
                     appendLine(formatProperty(property))
+                }
+            }
+
+            // События
+            if (events.isNotEmpty()) {
+                appendLine("## События\n")
+                events.forEach { event ->
+                    appendLine(formatMethod(event))
                 }
             }
         }
@@ -151,7 +166,9 @@ class MarkdownFormatterService : ResponseFormatterService {
             appendLine("Конструкторы объекта $typeName")
             result.forEach {
                 appendLine("## Конструктор: ${it.name} (${it.description})")
+                append(formatDeprecation(it.status))
                 appendLine(formatSignature(it, "Новый $typeName"))
+                append(formatNote(it.note))
             }
         }
     }
@@ -162,6 +179,12 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatPlatformType(type: PlatformTypeDefinition): String =
         buildString {
             appendLine("# ${type.name}\n")
+            append(formatDeprecation(type.status))
+
+            if (type.description.isNotBlank()) {
+                appendLine("${type.description}\n")
+            }
+            append(formatNote(type.note))
 
             // Методы
             if (type.hasMethods()) {
@@ -173,18 +196,28 @@ class MarkdownFormatterService : ResponseFormatterService {
 
             // Свойства
             if (type.hasProperties()) {
-                appendLine("## Свойства\n")
+                appendLine(if (type.isEnum) "## Значения\n" else "## Свойства\n")
                 type.properties.forEach {
                     appendLine(formatPropertySummary(it))
                 }
             }
-            // Свойства
+            // События
+            if (type.events.isNotEmpty()) {
+                appendLine("## События\n")
+                type.events.forEach {
+                    appendLine(formatMethodSummary(it))
+                }
+            }
+
+            // Конструкторы
             if (!type.constructors.isEmpty()) {
                 appendLine("## Конструкторы")
                 type.constructors.forEach {
                     appendLine(formatConstructorSummary(it))
                 }
             }
+
+            append(formatStatusDetails(type.status))
         }
 
     /**
@@ -192,17 +225,29 @@ class MarkdownFormatterService : ResponseFormatterService {
      */
     private fun formatMethod(method: MethodDefinition): String =
         buildString {
-            appendLine("### ${method.name}\n")
+            if (method.isEvent) {
+                appendLine("### Событие ${method.ownerType?.let { "$it." } ?: ""}${method.name}\n")
+            } else {
+                appendLine("### ${method.name}\n")
+            }
+            append(formatDeprecation(method.status))
 
             if (method.description.isNotBlank()) {
                 appendLine("${method.description}\n")
             }
 
-            appendLine(formatSignatures(method.signature, method.name))
+            appendLine(formatSignatures(method.signature, method.name, showRequired = !method.isEvent))
 
             if (method.returnType.isNotBlank()) {
-                appendLine("**Возвращаемый тип:** `${method.returnType}`\n")
+                appendLine("**Возвращаемый тип:** `${method.returnType}`")
+                if (method.returnDescription.isNotBlank()) {
+                    appendLine(method.returnDescription)
+                }
+                appendLine()
             }
+
+            append(formatNote(method.note))
+            append(formatStatusDetails(method.status))
         }
 
     /**
@@ -211,6 +256,7 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatProperty(property: PropertyDefinition): String =
         buildString {
             appendLine("### ${property.name}\n")
+            append(formatDeprecation(property.status))
 
             if (property.description.isNotBlank()) {
                 appendLine("${property.description}\n")
@@ -218,21 +264,26 @@ class MarkdownFormatterService : ResponseFormatterService {
 
             appendLine("**Тип:** `${property.propertyType}`")
             appendLine("**Только для чтения:** ${if (property.isReadOnly) "Да" else "Нет"}\n")
+
+            append(formatNote(property.note))
+            append(formatStatusDetails(property.status))
         }
 
     private fun formatSignatures(
         signatures: List<Signature>,
         name: String,
+        showRequired: Boolean = true,
     ) = buildString {
         signatures.forEach { signature ->
             appendLine("## Сигнатура: ${signature.name} (${signature.description})")
-            appendLine(formatSignature(signature, name))
+            appendLine(formatSignature(signature, name, showRequired))
         }
     }
 
     private fun formatSignature(
         signature: Signature,
         name: String,
+        showRequired: Boolean = true,
     ) = buildString {
         appendLine("```bsl")
         appendLine("$name(${signature.format()})")
@@ -242,7 +293,8 @@ class MarkdownFormatterService : ResponseFormatterService {
         if (signature.parameters.isNotEmpty()) {
             appendLine("### Параметры")
             signature.parameters.forEach { param ->
-                val requiredMark = if (param.required) "(обязательный)" else ""
+                // У параметров событий в справке нет признака обязательности
+                val requiredMark = if (showRequired && param.required) "(обязательный)" else ""
                 val description = param.description
                 appendLine("- **${param.name}** *(${param.type})* $requiredMark - $description")
             }
@@ -256,12 +308,13 @@ class MarkdownFormatterService : ResponseFormatterService {
     private fun formatMethodSummary(method: MethodDefinition): String {
         val returnType = if (method.returnType.isNotBlank()) ": ${method.returnType}" else ""
 
+        val mark = deprecatedMark(method.status)
         return if (method.signature.isEmpty()) {
-            "- ${method.name}()$returnType - ${method.description}"
+            "- $mark${method.name}()$returnType - ${method.description}"
         } else {
             buildString {
                 method.signature.forEach {
-                    appendLine("- ${method.name}(${it.format()})$returnType - ${it.description}")
+                    appendLine("- $mark${method.name}(${it.format()})$returnType - ${it.description}")
                 }
             }
         }
@@ -271,12 +324,60 @@ class MarkdownFormatterService : ResponseFormatterService {
      * Форматирует краткую информацию о свойстве
      */
     private fun formatPropertySummary(property: PropertyDefinition): String =
-        "- ${property.name}: ${property.propertyType} - ${property.description}"
+        "- ${deprecatedMark(property.status)}${property.name}: ${property.propertyType} - ${property.description}"
 
     /**
      * Форматирует краткую информацию о свойстве
      */
-    private fun formatConstructorSummary(constructor: Signature): String = "- ${constructor.name} - ${constructor.description}"
+    private fun formatConstructorSummary(constructor: Signature): String =
+        "- ${deprecatedMark(constructor.status)}${constructor.name} - ${constructor.description}"
+
+    /**
+     * Предупреждение об устаревании и рекомендуемая замена (выводится сразу под заголовком).
+     */
+    private fun formatDeprecation(
+        status: ApiStatus,
+        compact: Boolean = false,
+    ): String {
+        if (!status.isDeprecated) return ""
+        val replacement =
+            status.replacements
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(", ") { "`$it`" }
+        return buildString {
+            if (compact) {
+                append("**⚠️ ${status.deprecated}**")
+                replacement?.let { append(" Рекомендуется использовать: $it") }
+                appendLine()
+            } else {
+                appendLine("> ⚠️ **${status.deprecated}**")
+                replacement?.let { appendLine("> **Рекомендуется использовать:** $it") }
+                appendLine()
+            }
+        }
+    }
+
+    /**
+     * Версия появления и доступность (выводятся в конце описания элемента).
+     */
+    private fun formatStatusDetails(status: ApiStatus): String =
+        buildString {
+            status.since?.let { appendLine("**Версия:** $it") }
+            status.availability?.let { appendLine("**Доступность:** $it") }
+            if (isNotEmpty()) appendLine()
+        }
+
+    /** Раздел «Примечание:» справки (ограничения, особенности веб-клиента, связь со свойствами конфигурации). */
+    private fun formatNote(note: String): String = if (note.isBlank()) "" else "**Примечание:** ${note.trim()}\n\n"
+
+    private fun deprecatedMark(status: ApiStatus) = if (status.isDeprecated) "⚠️ (не рекомендуется) " else ""
+
+    private fun Definition.deprecatedStatus(): ApiStatus? =
+        when (this) {
+            is MethodDefinition -> status
+            is PropertyDefinition -> status
+            is PlatformTypeDefinition -> status
+        }.takeIf { it.isDeprecated }
 }
 
 fun Signature.format() =

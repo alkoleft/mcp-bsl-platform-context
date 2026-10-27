@@ -17,6 +17,14 @@ data class PlatformTypeDefinition(
     val methods: List<MethodDefinition>,
     val properties: List<PropertyDefinition>,
     val constructors: List<Signature>,
+    val status: ApiStatus = ApiStatus(),
+    /** Системное перечисление / набор значений: значения лежат в [properties]. */
+    val isEnum: Boolean = false,
+    val events: List<MethodDefinition> = emptyList(),
+    /** Имя типа в оглавлении справки (может отличаться от заголовка страницы). */
+    val tocName: String? = null,
+    /** Раздел «Примечание:» страницы справки. */
+    val note: String = "",
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы

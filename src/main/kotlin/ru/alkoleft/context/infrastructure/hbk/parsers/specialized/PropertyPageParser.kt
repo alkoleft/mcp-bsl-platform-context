@@ -7,10 +7,12 @@
 
 package ru.alkoleft.context.infrastructure.hbk.parsers.specialized
 
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.exceptions.HandlerProcessingNotImplemented
 import ru.alkoleft.context.infrastructure.hbk.exceptions.UnknownPageBlockType
 import ru.alkoleft.context.infrastructure.hbk.models.PropertyInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
+import ru.alkoleft.context.infrastructure.hbk.parsers.core.AvailabilityBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.BlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.NameBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.NoteBlockHandler
@@ -51,6 +53,8 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
     private var typeNames = ""
     private var relatedObjects: List<RelatedObject>? = null
     private var note: String? = null
+    private var status = ApiStatus()
+    private var availability: String? = null
 
     override fun createHandler(blockTitle: String): BlockHandler<*>? =
         when (blockTitle) {
@@ -58,7 +62,8 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
             "Использование:" -> ReadOnlyBlockHandler()
             "См. также:" -> RelatedObjectsBlockHandler()
             "Примечание:" -> NoteBlockHandler()
-            "Доступность:", "Использование в версии:", "Использование в интерфейсе:" -> null
+            "Доступность:" -> AvailabilityBlockHandler()
+            "Использование в версии:", "Использование в интерфейсе:" -> null
             else -> throw UnknownPageBlockType(blockTitle)
         }
 
@@ -68,6 +73,7 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
                 handler.getResult().apply {
                     nameRu = first
                     nameEn = second
+                    status = handler.getStatus()
                 }
 
             is ValueInfoBlockHandler ->
@@ -79,6 +85,7 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
             is ReadOnlyBlockHandler -> readonly = handler.getResult()
             is RelatedObjectsBlockHandler -> relatedObjects = handler.getResult()
             is NoteBlockHandler -> note = handler.getResult()
+            is AvailabilityBlockHandler -> availability = handler.getResult().ifBlank { null }
             else -> throw HandlerProcessingNotImplemented(handler)
         }
     }
@@ -92,6 +99,7 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
             typeName = typeNames,
             relatedObjects = relatedObjects,
             note = note,
+            status = status.copy(availability = availability),
         )
 
     override fun clean() {
@@ -102,6 +110,8 @@ class PropertyPageProxyHandler : PageProxyHandler<PropertyInfo>() {
         typeNames = ""
         relatedObjects = null
         note = null
+        status = ApiStatus()
+        availability = null
     }
 }
 

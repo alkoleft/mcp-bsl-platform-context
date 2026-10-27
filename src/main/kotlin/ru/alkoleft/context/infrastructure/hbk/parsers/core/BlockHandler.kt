@@ -8,6 +8,7 @@
 package ru.alkoleft.context.infrastructure.hbk.parsers.core
 
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlHandler
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.models.MethodParameterInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
 import ru.alkoleft.context.infrastructure.hbk.models.ValueInfo
@@ -75,12 +76,47 @@ class NameBlockHandler : BlockHandler<Pair<String, String>> {
     private var inHeading = false
     private var inTitle = false
 
+    // Блоки статуса в шапке страницы (до первого раздела V8SH_chapter)
+    private var statusSection = StatusSection.NONE
+    private var statusDivDepth = 0
+    private var inNotUsed = false
+    private var inListItem = false
+    private val deprecated = StringBuilder()
+    private val since = StringBuilder()
+    private val listItem = StringBuilder()
+    private val replacements = mutableListOf<String>()
+
     override fun onOpenTag(
         name: String,
         attributes: Map<String, String>,
         isImplied: Boolean,
     ) {
-        if (name == "p") {
+        val tag = name.lowercase()
+        if (tag == "div") {
+            if (statusSection != StatusSection.NONE) {
+                statusDivDepth++
+            } else {
+                statusSection =
+                    when (attributes["class"]) {
+                        DEPRECATED_CLASS -> StatusSection.DEPRECATED
+                        SINCE_CLASS -> StatusSection.SINCE
+                        else -> StatusSection.NONE
+                    }
+                statusDivDepth = if (statusSection != StatusSection.NONE) 1 else 0
+            }
+            return
+        }
+        if (statusSection != StatusSection.NONE) {
+            when (tag) {
+                "p" -> inNotUsed = (attributes["class"] == NOT_USED_CLASS)
+                "li" -> {
+                    inListItem = true
+                    listItem.clear()
+                }
+            }
+            return
+        }
+        if (tag == "p") {
             inHeading = (attributes["class"] == "V8SH_heading")
             inTitle = (attributes["class"] == "V8SH_title")
         }
@@ -90,16 +126,57 @@ class NameBlockHandler : BlockHandler<Pair<String, String>> {
         name: String,
         isImplied: Boolean,
     ) {
+        val tag = name.lowercase()
+        if (statusSection != StatusSection.NONE) {
+            when (tag) {
+                "div" -> {
+                    statusDivDepth--
+                    if (statusDivDepth <= 0) {
+                        statusSection = StatusSection.NONE
+                        statusDivDepth = 0
+                    }
+                }
+                "p" -> inNotUsed = false
+                "li" -> {
+                    if (inListItem && statusSection == StatusSection.DEPRECATED) {
+                        listItem.toString().normalizeSpaces().takeIf { it.isNotEmpty() }?.let(replacements::add)
+                    }
+                    inListItem = false
+                }
+            }
+            return
+        }
         inHeading = false
     }
 
     override fun onText(text: String) {
-        if (inHeading) {
-            heading.append(text)
-        } else if (inTitle) {
-            title.append(text)
+        when (statusSection) {
+            StatusSection.DEPRECATED ->
+                when {
+                    inListItem -> listItem.append(text)
+                    inNotUsed -> deprecated.append(text)
+                }
+
+            StatusSection.SINCE -> if (inNotUsed) since.append(text)
+            StatusSection.NONE ->
+                if (inHeading) {
+                    heading.append(text)
+                } else if (inTitle) {
+                    title.append(text)
+                }
         }
     }
+
+    /**
+     * Статус элемента из шапки страницы: устаревание, замены, версия появления.
+     * Раздел «Доступность:» обрабатывается отдельно [AvailabilityBlockHandler].
+     */
+    fun getStatus(): ApiStatus =
+        ApiStatus(
+            deprecated = deprecated.toString().normalizeSpaces().ifEmpty { null },
+            replacements = replacements.toList(),
+            since = since.toString().normalizeSpaces().ifEmpty { null },
+        )
 
     override fun getResult(): Pair<String, String> = readName(if (heading.isNotEmpty()) heading.trim() else title.trim())
 
@@ -108,6 +185,22 @@ class NameBlockHandler : BlockHandler<Pair<String, String>> {
         title.clear()
         inHeading = false
         inTitle = false
+        statusSection = StatusSection.NONE
+        statusDivDepth = 0
+        inNotUsed = false
+        inListItem = false
+        deprecated.clear()
+        since.clear()
+        listItem.clear()
+        replacements.clear()
+    }
+
+    private enum class StatusSection { NONE, DEPRECATED, SINCE }
+
+    private companion object {
+        const val DEPRECATED_CLASS = "__DEPRECATED_SHOW_STYLE__"
+        const val SINCE_CLASS = "__SINCE_SHOW_STYLE__"
+        const val NOT_USED_CLASS = "not_used"
     }
 
     fun readName(text: CharSequence): Pair<String, String> {
@@ -409,6 +502,15 @@ class SignatureDescriptionBlockHandler : DescriptionBlockHandler()
 class NoteBlockHandler : MarkdownHtmlHandler<String>() {
     override fun getResult() = getMarkdown()
 }
+
+/**
+ * Обработчик раздела «Доступность:» (тонкий клиент, сервер, ... и пометки «Внимание:»).
+ */
+class AvailabilityBlockHandler : MarkdownHtmlHandler<String>() {
+    override fun getResult() = getMarkdown()
+}
+
+private fun String.normalizeSpaces() = replace('\u00a0', ' ').replace(Regex("\\s+"), " ").trim()
 
 /**
  * Обработчик блока примеров.

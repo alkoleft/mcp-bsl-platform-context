@@ -7,11 +7,13 @@
 
 package ru.alkoleft.context.infrastructure.hbk.parsers.specialized
 
+import ru.alkoleft.context.business.entities.ApiStatus
 import ru.alkoleft.context.infrastructure.hbk.exceptions.HandlerProcessingNotImplemented
 import ru.alkoleft.context.infrastructure.hbk.exceptions.UnknownPageBlockType
 import ru.alkoleft.context.infrastructure.hbk.models.ConstructorInfo
 import ru.alkoleft.context.infrastructure.hbk.models.MethodParameterInfo
 import ru.alkoleft.context.infrastructure.hbk.models.RelatedObject
+import ru.alkoleft.context.infrastructure.hbk.parsers.core.AvailabilityBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.BlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.DescriptionBlockHandler
 import ru.alkoleft.context.infrastructure.hbk.parsers.core.ExampleBlockHandler
@@ -49,6 +51,8 @@ class ConstructorPageProxyHandler : PageProxyHandler<ConstructorInfo>() {
     private var example: String? = null
     private var relatedObjects: List<RelatedObject>? = null
     private var note: String? = null
+    private var status = ApiStatus()
+    private var availability: String? = null
 
     override fun createHandler(blockTitle: String): BlockHandler<*>? =
         when (blockTitle) {
@@ -58,14 +62,17 @@ class ConstructorPageProxyHandler : PageProxyHandler<ConstructorInfo>() {
             "Пример:" -> ExampleBlockHandler()
             "См. также:" -> RelatedObjectsBlockHandler()
             "Примечание:" -> NoteBlockHandler()
-            "Доступность:", "Использование в версии:", "Использование в интерфейсе:" -> null
+            "Доступность:" -> AvailabilityBlockHandler()
+            "Использование в версии:", "Использование в интерфейсе:" -> null
             else -> throw UnknownPageBlockType(blockTitle)
         }
 
     override fun onBlockFinished(handler: BlockHandler<*>) {
         when (handler) {
-            is NameBlockHandler ->
+            is NameBlockHandler -> {
                 name = handler.getResult().first
+                status = handler.getStatus()
+            }
 
             is SyntaxBlockHandler -> syntax = handler.getResult()
             is ParametersBlockHandler -> parameters = handler.getResult()
@@ -73,6 +80,7 @@ class ConstructorPageProxyHandler : PageProxyHandler<ConstructorInfo>() {
             is ExampleBlockHandler -> example = handler.getResult()
             is RelatedObjectsBlockHandler -> relatedObjects = handler.getResult()
             is NoteBlockHandler -> note = handler.getResult()
+            is AvailabilityBlockHandler -> availability = handler.getResult().ifBlank { null }
             else -> throw HandlerProcessingNotImplemented(handler)
         }
     }
@@ -86,6 +94,7 @@ class ConstructorPageProxyHandler : PageProxyHandler<ConstructorInfo>() {
             example = example,
             note = note,
             relatedObjects = relatedObjects,
+            status = status.copy(availability = availability),
         )
 
     override fun clean() {
@@ -96,6 +105,8 @@ class ConstructorPageProxyHandler : PageProxyHandler<ConstructorInfo>() {
         example = null
         relatedObjects = null
         note = null
+        status = ApiStatus()
+        availability = null
     }
 }
 

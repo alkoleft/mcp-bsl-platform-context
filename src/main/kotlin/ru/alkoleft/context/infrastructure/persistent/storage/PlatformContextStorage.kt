@@ -21,6 +21,8 @@ import kotlin.concurrent.write
 
 private val logger = KotlinLogging.logger {}
 
+const val GLOBAL_CONTEXT_TYPE = "ГлобальныйКонтекст"
+
 class PlatformContextStorage(
     private val loader: PlatformContextLoader,
     val platformPath: Path,
@@ -64,7 +66,24 @@ class PlatformContextStorage(
         loader.loadPlatformContext(platformPath) {
             methods = globalMethods().map(MethodInfo::toEntity).toList()
             properties = globalProperties().map(PropertyInfo::toEntity).toList()
-            types = types().map { it.toEntity() }.toList()
+            val objectTypes = types().map { it.toEntity() }.toList()
+            val enumTypes = enums().map { it.toEntity() }.toList()
+            logger.info { "Загружено перечислений: ${enumTypes.size}" }
+            val globalEvents = globalEvents().map { (module, event) -> event.toEventEntity("$GLOBAL_CONTEXT_TYPE ($module)") }
+            logger.info { "Загружено глобальных событий: ${globalEvents.size}" }
+            // Псевдотип «ГлобальныйКонтекст»: getMember/getMembers по глобальным методам, свойствам и событиям
+            val globalContext =
+                PlatformTypeDefinition(
+                    name = GLOBAL_CONTEXT_TYPE,
+                    description = "Глобальный контекст: глобальные методы, свойства и события модулей приложения, сеанса и внешнего соединения.",
+                    methods = methods,
+                    properties = properties,
+                    constructors = emptyList(),
+                    events = globalEvents,
+                )
+            types = disambiguateTypeNames(objectTypes + enumTypes + globalContext)
+            val renamedCount = types.count { it.description.contains(RENAMED_TYPE_NOTE) }
+            logger.info { "Одноимённых типов переименовано: $renamedCount" }
         }
         logger.info { "Загружено: методы=${methods.size}, свойства=${properties.size}, типы=${types.size}" }
         indexInitialized.set(true)

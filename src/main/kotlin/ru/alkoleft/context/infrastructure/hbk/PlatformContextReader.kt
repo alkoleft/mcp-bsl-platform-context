@@ -9,6 +9,7 @@ package ru.alkoleft.context.infrastructure.hbk
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.alkoleft.context.infrastructure.hbk.models.EnumInfo
+import ru.alkoleft.context.infrastructure.hbk.models.MethodInfo
 import ru.alkoleft.context.infrastructure.hbk.models.ObjectInfo
 import ru.alkoleft.context.infrastructure.hbk.models.Page
 import ru.alkoleft.context.infrastructure.hbk.parsers.PlatformContextPagesParser
@@ -61,6 +62,19 @@ class PlatformContextReader {
         }
     }
 
+    companion object {
+        private val EVENT_MODULES =
+            mapOf(
+                "События приложения" to "Модуль приложения",
+                "События модуля сеанса" to "Модуль сеанса",
+                "События обычного приложения" to "Модуль обычного приложения",
+                "События внешнего соединения" to "Модуль внешнего соединения",
+            )
+        private val EVENT_MODULE_ORDER = EVENT_MODULES.values.toList()
+
+        fun eventModuleName(catalogTitle: String) = EVENT_MODULES[catalogTitle] ?: catalogTitle
+    }
+
     class Context(
         private val visitor: PagesVisitor,
         private val globalContextPage: Page,
@@ -79,7 +93,12 @@ class PlatformContextReader {
                 for (page in enumPages) {
                     drillDown(page)
                 }
-            }.map(visitor::visitEnumPage)
+            }.mapNotNull { page ->
+                // Ошибка разбора одной страницы перечисления не должна ронять загрузку всего контекста
+                runCatching { visitor.visitEnumPage(page) }
+                    .onFailure { logger.warn { "Пропущено перечисление ${page.htmlPath}: ${it.message}" } }
+                    .getOrNull()
+            }
 
         fun globalMethods() =
             sequence {
@@ -89,6 +108,18 @@ class PlatformContextReader {
                     }
                 }
             }.flatMap(visitor::visitMethodsPage)
+
+        /**
+         * Глобальные события с указанием модуля, к которому они относятся.
+         * Одно и то же имя (например, ПриНачалеРаботыСистемы) встречается в нескольких модулях,
+         * поэтому события упорядочены по приоритету модуля: сначала модуль (управляемого) приложения.
+         */
+        fun globalEvents(): List<Pair<String, MethodInfo>> =
+            globalContextPage.children
+                .filter { it.htmlPath.contains("/events/") }
+                .map { page -> eventModuleName(page.title.en.ifBlank { page.title.ru }) to page }
+                .sortedBy { (module, _) -> EVENT_MODULE_ORDER.indexOf(module).let { if (it < 0) Int.MAX_VALUE else it } }
+                .flatMap { (module, page) -> visitor.visitEventsPage(page).map { module to it }.toList() }
 
         fun globalProperties() =
             globalContextPage.children

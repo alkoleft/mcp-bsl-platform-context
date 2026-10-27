@@ -14,4 +14,7 @@ data class Signature(
     val name: String,
     val parameters: List<ParameterDefinition>,
     val description: String,
+    val status: ApiStatus = ApiStatus(),
+    /** Раздел «Примечание:» страницы справки. */
+    val note: String = "",
 )
