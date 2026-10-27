@@ -168,6 +168,7 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine("## Конструктор: ${it.name} (${it.description})")
                 append(formatDeprecation(it.status))
                 appendLine(formatSignature(it, "Новый $typeName"))
+                append(formatNote(it.note))
             }
         }
     }
@@ -183,6 +184,7 @@ class MarkdownFormatterService : ResponseFormatterService {
             if (type.description.isNotBlank()) {
                 appendLine("${type.description}\n")
             }
+            append(formatNote(type.note))
 
             // Методы
             if (type.hasMethods()) {
@@ -244,6 +246,7 @@ class MarkdownFormatterService : ResponseFormatterService {
                 appendLine()
             }
 
+            append(formatNote(method.note))
             append(formatStatusDetails(method.status))
         }
 
@@ -262,6 +265,7 @@ class MarkdownFormatterService : ResponseFormatterService {
             appendLine("**Тип:** `${property.propertyType}`")
             appendLine("**Только для чтения:** ${if (property.isReadOnly) "Да" else "Нет"}\n")
 
+            append(formatNote(property.note))
             append(formatStatusDetails(property.status))
         }
 
@@ -362,6 +366,9 @@ class MarkdownFormatterService : ResponseFormatterService {
             status.availability?.let { appendLine("**Доступность:** $it") }
             if (isNotEmpty()) appendLine()
         }
+
+    /** Раздел «Примечание:» справки (ограничения, особенности веб-клиента, связь со свойствами конфигурации). */
+    private fun formatNote(note: String): String = if (note.isBlank()) "" else "**Примечание:** ${note.trim()}\n\n"
 
     private fun deprecatedMark(status: ApiStatus) = if (status.isDeprecated) "⚠️ (не рекомендуется) " else ""
 

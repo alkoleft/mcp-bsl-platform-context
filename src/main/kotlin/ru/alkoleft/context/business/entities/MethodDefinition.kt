@@ -23,4 +23,6 @@ data class MethodDefinition(
     val isEvent: Boolean = false,
     /** Тип-владелец события, например ФормаКлиентскогоПриложения. */
     val ownerType: String? = null,
+    /** Раздел «Примечание:» страницы справки. */
+    val note: String = "",
 ) : Definition

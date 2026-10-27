@@ -27,6 +27,7 @@ fun MethodInfo.toEntity() =
         description = description,
         returnType = returnValue?.type ?: "",
         returnDescription = returnValue?.description?.trim() ?: "",
+        note = note?.trim().orEmpty(),
         signature = signatures.map(MethodSignatureInfo::toEntity),
         status = status,
     )
@@ -44,6 +45,7 @@ fun ConstructorInfo.toEntity() =
         parameters = parameters.map(MethodParameterInfo::toEntity),
         description = description,
         status = status,
+        note = note?.trim().orEmpty(),
     )
 
 fun MethodParameterInfo.toEntity() =
@@ -61,6 +63,7 @@ fun PropertyInfo.toEntity() =
         propertyType = typeName,
         isReadOnly = readonly,
         status = status,
+        note = note?.trim().orEmpty(),
     )
 
 fun ObjectInfo.toEntity() =
@@ -73,6 +76,7 @@ fun ObjectInfo.toEntity() =
         status = status,
         events = events?.map { it.toEventEntity(nameRu) } ?: emptyList(),
         tocName = tocName,
+        note = note?.trim().orEmpty(),
     )
 
 fun MethodInfo.toEventEntity(owner: String) = toEntity().copy(isEvent = true, ownerType = owner)

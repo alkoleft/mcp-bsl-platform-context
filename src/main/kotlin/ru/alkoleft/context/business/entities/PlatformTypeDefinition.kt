@@ -23,6 +23,8 @@ data class PlatformTypeDefinition(
     val events: List<MethodDefinition> = emptyList(),
     /** Имя типа в оглавлении справки (может отличаться от заголовка страницы). */
     val tocName: String? = null,
+    /** Раздел «Примечание:» страницы справки. */
+    val note: String = "",
 ) : Definition {
     /**
      * Проверяет, содержит ли тип методы
