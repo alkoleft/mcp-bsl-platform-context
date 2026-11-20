@@ -8,12 +8,14 @@
 package ru.alkoleft.context.infrastructure.search
 
 import ru.alkoleft.context.business.entities.Definition
+import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.valueobjects.ApiType
 import ru.alkoleft.context.infrastructure.search.SimpleSearchEngine.SearchResult
 import ru.alkoleft.context.infrastructure.search.indexes.Indexes
 
 class RegularSearch(
     private val indexes: Indexes,
+    private val resolve: (String) -> List<PlatformTypeDefinition>,
 ) {
     fun search(
         query: String,
@@ -41,6 +43,7 @@ class RegularSearch(
                 .forEach { results.add(regular(it)) }
         }
         if (inType) {
+            resolve(query).forEach { results.add(SearchResult(it, 0, 0, "exact-type")) }
             indexes.types
                 .get(query)
                 .forEach { results.add(regular(it)) }

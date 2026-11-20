@@ -61,10 +61,12 @@ class ContextSearchService(
         return result
     }
 
+    data class FoundMember(val ownerName: String, val definition: Definition)
+
     fun findMemberByTypeAndName(
         typeName: String,
         memberName: String,
-    ): Definition {
+    ): FoundMember {
         logger.debug { "findMemberByTypeAndName called with typeName='$typeName', memberName='$memberName'" }
         if (typeName.isBlank() || memberName.isBlank()) {
             logger.warn { "findMemberByTypeAndName: typeName or memberName is blank" }
@@ -81,7 +83,7 @@ class ContextSearchService(
             repository.findTypeMember(type, memberName)
                 ?: throw TypeMemberNotFoundException(memberName, typeName)
         logger.debug { "findMemberByTypeAndName result: $result" }
-        return result
+        return FoundMember(type.name, result)
     }
 
     fun findTypeMembers(typeName: String): List<Definition> {

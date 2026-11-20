@@ -91,12 +91,12 @@ class MarkdownFormatterService : ResponseFormatterService {
      * @param definition Определение элемента (тип, метод или свойство).
      * @return Строка с подробным описанием элемента в формате Markdown.
      */
-    override fun formatMember(definition: Definition?): String {
+    override fun formatMember(definition: Definition?, ownerName: String?): String {
         logger.debug { "formatInfo called with definition=$definition" }
         return when (definition) {
             is PlatformTypeDefinition -> formatPlatformType(definition)
-            is PropertyDefinition -> formatProperty(definition)
-            is MethodDefinition -> formatMethod(definition)
+            is PropertyDefinition -> formatProperty(definition, ownerName)
+            is MethodDefinition -> formatMethod(definition, ownerName)
             null -> "❌ **Не найдено:** Ничего не найдено для запроса\n"
         }
     }
@@ -190,9 +190,9 @@ class MarkdownFormatterService : ResponseFormatterService {
     /**
      * Форматирует метод в Markdown (публичный метод)
      */
-    private fun formatMethod(method: MethodDefinition): String =
+    private fun formatMethod(method: MethodDefinition, ownerName: String? = null): String =
         buildString {
-            appendLine("### ${method.name}\n")
+            appendLine("### ${ownerName?.let { "$it." }.orEmpty()}${method.name}\n")
 
             if (method.description.isNotBlank()) {
                 appendLine("${method.description}\n")
@@ -208,9 +208,9 @@ class MarkdownFormatterService : ResponseFormatterService {
     /**
      * Форматирует свойство в Markdown (публичный метод)
      */
-    private fun formatProperty(property: PropertyDefinition): String =
+    private fun formatProperty(property: PropertyDefinition, ownerName: String? = null): String =
         buildString {
-            appendLine("### ${property.name}\n")
+            appendLine("### ${ownerName?.let { "$it." }.orEmpty()}${property.name}\n")
 
             if (property.description.isNotBlank()) {
                 appendLine("${property.description}\n")
