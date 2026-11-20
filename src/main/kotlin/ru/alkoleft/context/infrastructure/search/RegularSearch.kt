@@ -12,6 +12,11 @@ import ru.alkoleft.context.business.valueobjects.ApiType
 import ru.alkoleft.context.infrastructure.search.SimpleSearchEngine.SearchResult
 import ru.alkoleft.context.infrastructure.search.indexes.Indexes
 
+private val typeSearchAliases = mapOf(
+    "табличнаячасть" to "Табличная часть",
+    "документтабличнаячасть" to "Табличная часть",
+)
+
 class RegularSearch(
     private val indexes: Indexes,
 ) {
@@ -41,6 +46,11 @@ class RegularSearch(
                 .forEach { results.add(regular(it)) }
         }
         if (inType) {
+            typeSearchAliases[query.lowercase()]?.let { canonicalName ->
+                indexes.types.get(canonicalName)
+                    .firstOrNull { it.name.equals(canonicalName, ignoreCase = true) }
+                    ?.let { results.add(regular(it)) }
+            }
             indexes.types
                 .get(query)
                 .forEach { results.add(regular(it)) }
