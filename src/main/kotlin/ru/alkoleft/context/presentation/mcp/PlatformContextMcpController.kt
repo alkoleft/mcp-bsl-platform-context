@@ -111,9 +111,9 @@ class PlatformContextMcpController(
     ): String {
         logger.debug { "getMember called with typeName='$typeName', memberName='$memberName'" }
         try {
-            val definition = searchService.findMemberByTypeAndName(typeName, memberName)
-            logger.debug { "getMember result: $definition" }
-            return formatter.formatMember(definition)
+            val member = searchService.findMemberByTypeAndName(typeName, memberName)
+            logger.debug { "getMember result: $member" }
+            return formatter.formatMember(member.definition, member.ownerName)
         } catch (e: Exception) {
             logger.error(e) { "Ошибка при получении информации об элементе типа" }
             return formatter.formatError(e)

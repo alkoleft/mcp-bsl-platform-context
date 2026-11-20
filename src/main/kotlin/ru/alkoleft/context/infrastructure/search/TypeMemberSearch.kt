@@ -9,52 +9,61 @@ package ru.alkoleft.context.infrastructure.search
 
 import ru.alkoleft.context.business.entities.Definition
 import ru.alkoleft.context.business.entities.PlatformTypeDefinition
+import ru.alkoleft.context.business.valueobjects.ApiType
 import ru.alkoleft.context.infrastructure.search.SimpleSearchEngine.SearchResult
-import ru.alkoleft.context.infrastructure.search.indexes.Indexes
 
 class TypeMemberSearch(
-    private val indexes: Indexes,
+    private val resolve: (String) -> List<PlatformTypeDefinition>,
 ) {
-    fun search(query: String): List<SearchResult> {
+    fun search(
+        query: String,
+        apiType: ApiType? = null,
+    ): List<SearchResult> {
         val words = query.split("\\s+".toRegex()).filter { it.isNotBlank() }
-        val results = mutableListOf<SearchResult>()
-
-        // Пробуем разные комбинации слов как "тип.элемент"
-        for (i in words.indices) {
-            val typeName = words[i]
-            val memberQuery = words.drop(i + 1).joinToString(" ")
-
-            if (memberQuery.isNotEmpty()) {
-                indexes.types
-                    .get(typeName)
-                    .forEach { type ->
-                        val members = searchMembersInType(type, memberQuery)
-                        members.forEach { member ->
-                            results.add(typeMember(member))
-                        }
+        for (end in words.lastIndex downTo 1) {
+            val owners = resolve(words.take(end).joinToString(" "))
+            if (owners.isEmpty()) continue
+            val memberName = words.drop(end).joinToString(" ")
+            return owners.flatMap { owner ->
+                searchMembersInType(owner, memberName, apiType).map { member ->
+                    if (member.name.equals(memberName, ignoreCase = true)) {
+                        SearchResult(member, -1, 0, "exact-type-member")
+                    } else {
+                        typeMember(member)
                     }
+                }
             }
         }
-
-        return results
+        return emptyList()
     }
 
+    /**
+     * Члены типа, имя которых содержит [memberQuery]. Фильтр [apiType] — как в [RegularSearch]:
+     * METHOD — только методы, PROPERTY — только свойства, TYPE — членов типа нет;
+     * без фильтра (и для CONSTRUCTOR) — методы и свойства.
+     */
     fun searchMembersInType(
         type: PlatformTypeDefinition,
         memberQuery: String,
+        apiType: ApiType? = null,
     ): List<Definition> {
         val results = mutableListOf<Definition>()
         val queryLower = memberQuery.lowercase()
+        val anyKind = apiType == null || apiType == ApiType.CONSTRUCTOR
 
         // Поиск среди методов
-        type.methods
-            .filter { it.name.lowercase().contains(queryLower) }
-            .forEach { results.add(it) }
+        if (anyKind || apiType == ApiType.METHOD) {
+            type.methods
+                .filter { it.name.lowercase().contains(queryLower) }
+                .forEach { results.add(it) }
+        }
 
         // Поиск среди свойств
-        type.properties
-            .filter { it.name.lowercase().contains(queryLower) }
-            .forEach { results.add(it) }
+        if (anyKind || apiType == ApiType.PROPERTY) {
+            type.properties
+                .filter { it.name.lowercase().contains(queryLower) }
+                .forEach { results.add(it) }
+        }
 
         return results
     }

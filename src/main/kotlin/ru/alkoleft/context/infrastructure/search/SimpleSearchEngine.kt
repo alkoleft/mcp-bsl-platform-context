@@ -14,6 +14,7 @@ import ru.alkoleft.context.business.entities.PlatformTypeDefinition
 import ru.alkoleft.context.business.entities.PropertyDefinition
 import ru.alkoleft.context.business.valueobjects.ApiType
 import ru.alkoleft.context.business.valueobjects.SearchQuery
+import ru.alkoleft.context.exceptions.InvalidSearchQueryException
 import ru.alkoleft.context.infrastructure.persistent.storage.PlatformContextStorage
 import ru.alkoleft.context.infrastructure.search.indexes.HashIndex
 import ru.alkoleft.context.infrastructure.search.indexes.Indexes
@@ -37,9 +38,10 @@ class SimpleSearchEngine(
             types = StartWithIndex(),
         )
 
+    private var typeNames = TypeNames(emptyList())
     private val compoundTypeSearch = CompoundTypeSearch(startWithIndexes)
-    private val typeMemberSearch = TypeMemberSearch(startWithIndexes)
-    private val regularSearch = RegularSearch(startWithIndexes)
+    private val typeMemberSearch = TypeMemberSearch { typeNames.candidates(it) }
+    private val regularSearch = RegularSearch(startWithIndexes) { typeNames.candidates(it) }
     private val wordOrderSearch = WordOrderSearch(context)
 
     override fun initialize(context: PlatformContextStorage) {
@@ -47,6 +49,7 @@ class SimpleSearchEngine(
 
         try {
             context.load()
+            typeNames = TypeNames(context.types)
             hashIndexes.load(context)
             startWithIndexes.load(context)
 
@@ -74,7 +77,13 @@ class SimpleSearchEngine(
     override fun search(searchQuery: SearchQuery): List<Definition> =
         initializeIfNeed { search(searchQuery.query, searchQuery.maxResults, searchQuery.apiType) }
 
-    override fun findType(name: String) = initializeIfNeed { hashIndexes.types.get(name).firstOrNull() }
+    override fun findType(name: String) = initializeIfNeed {
+        val candidates = typeNames.candidates(name)
+        if (candidates.size > 1) {
+            throw InvalidSearchQueryException("Уточните тип '$name': " + candidates.joinToString { it.name })
+        }
+        candidates.singleOrNull()
+    }
 
     override fun findProperty(name: String) = initializeIfNeed { hashIndexes.properties.get(name).firstOrNull() }
 
@@ -121,13 +130,13 @@ class SimpleSearchEngine(
         val searchResults = mutableListOf<SearchResult>()
 
         // 1. Поиск составных типов (compound-type search) - приоритет 1
-        if (words.size >= 2) {
+        if (words.size >= 2 && (type == null || type == ApiType.TYPE)) {
             searchResults.addAll(compoundTypeSearch.search(query))
         }
 
         // 2. Поиск "тип.элемент" (type-member search) - приоритет 2
         if (words.size >= 2) {
-            searchResults.addAll(typeMemberSearch.search(query))
+            searchResults.addAll(typeMemberSearch.search(query, type))
         }
 
         // 3. Обычный поиск (regular search) - приоритет 3
@@ -139,17 +148,10 @@ class SimpleSearchEngine(
         }
 
         // Удаление дубликатов и сортировка по приоритету
-        return removeDuplicates(searchResults)
+        return searchResults
             .sortedWith(compareBy<SearchResult> { it.priority }.thenByDescending { it.wordsMatched })
+            .distinctBy { it.item.name }
             .map { it.item }
-    }
-
-    private fun removeDuplicates(results: List<SearchResult>): List<SearchResult> {
-        val seen = mutableSetOf<String>()
-        return results.filter { result ->
-            val name = result.item.name
-            seen.add(name)
-        }
     }
 
     /**

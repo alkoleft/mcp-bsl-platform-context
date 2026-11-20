@@ -17,7 +17,7 @@ interface ResponseFormatterService {
 
     fun formatSearchResults(result: List<Definition>): String
 
-    fun formatMember(definition: Definition?): String
+    fun formatMember(definition: Definition?, ownerName: String? = null): String
 
     fun formatTypeMembers(definitions: List<Definition>): String
 
